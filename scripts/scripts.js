@@ -100,16 +100,43 @@ function decorateButtons(main) {
     p.className = 'button-wrapper';
     a.className = 'button';
     if (strong && em) { // high-impact call-to-action
-      a.classList.add('accent');
+      a.classList.add('cta');
       const outer = strong.contains(em) ? strong : em;
       outer.replaceWith(a);
     } else if (strong) {
       a.classList.add('primary');
       strong.replaceWith(a);
     } else {
-      a.classList.add('secondary');
+      a.classList.add('outline');
       em.replaceWith(a);
     }
+  });
+
+  // collapse adjacent button wrappers
+  let adjacent = main.querySelector('p.button-wrapper + p.button-wrapper');
+  while (adjacent) {
+    const prev = adjacent.previousElementSibling;
+    adjacent.querySelectorAll('a.button').forEach((btn) => prev.appendChild(btn));
+    adjacent.remove();
+    adjacent = main.querySelector('p.button-wrapper + p.button-wrapper');
+  }
+}
+
+/**
+ * Promotes italic-only paragraphs immediately preceding a heading to subheadings.
+ * @param {Element} main The main container element
+ */
+function decorateSubheadings(main) {
+  main.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
+    const prev = heading.previousElementSibling;
+    if (!prev || prev.tagName !== 'P') return;
+    const isText = (n) => n.nodeType === Node.TEXT_NODE && !n.textContent.trim();
+    const children = [...prev.childNodes].filter((n) => !isText(n));
+    if (children.length !== 1) return;
+    const [child] = children;
+    if (child.tagName !== 'EM' || child.querySelector('a')) return;
+    prev.classList.add('subheading');
+    prev.replaceChildren(...child.childNodes);
   });
 }
 
@@ -124,6 +151,7 @@ export function decorateMain(main) {
   decorateSections(main);
   decorateBlocks(main);
   decorateButtons(main);
+  decorateSubheadings(main);
 }
 
 /**
