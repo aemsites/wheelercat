@@ -10,22 +10,22 @@ header nav {
   box-sizing: border-box;
   display: grid;
   grid-template:
-    'hamburger brand tools' var(--nav-height)
+    'hamburger brand tools' var(--height-navbar)
     'sections sections sections' 1fr / auto 1fr auto;
   align-items: center;
   gap: 0 var(--space-m);
   margin: auto;
   max-width: 1248px;
-  height: var(--nav-height);
+  height: var(--height-navbar);
   padding: 0 var(--space-m);
   font-family: var(--font-body);
 }
 
 header nav[aria-expanded='true'] {
   grid-template:
-    'hamburger brand' var(--nav-height)
+    'hamburger brand' var(--height-navbar)
     'sections sections' 1fr
-    'tools tools' var(--nav-height) / auto 1fr;
+    'tools tools' var(--height-navbar) / auto 1fr;
   overflow-y: auto;
   min-height: 100dvh;
 }
