@@ -123,10 +123,10 @@ function decorateButtons(main) {
 }
 
 /**
- * Promotes italic-only paragraphs immediately preceding a heading to subheadings.
+ * Promotes italic-only paragraphs immediately preceding a heading to eyebrows.
  * @param {Element} main The main container element
  */
-function decorateSubheadings(main) {
+function decorateEyebrows(main) {
   main.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {
     const prev = heading.previousElementSibling;
     if (!prev || prev.tagName !== 'P') return;
@@ -135,8 +135,9 @@ function decorateSubheadings(main) {
     if (children.length !== 1) return;
     const [child] = children;
     if (child.tagName !== 'EM' || child.querySelector('a')) return;
-    prev.classList.add('subheading');
+    prev.classList.add('eyebrow');
     prev.replaceChildren(...child.childNodes);
+    heading.dataset.eyebrow = prev.textContent;
   });
 }
 
@@ -151,7 +152,7 @@ export function decorateMain(main) {
   decorateSections(main);
   decorateBlocks(main);
   decorateButtons(main);
-  decorateSubheadings(main);
+  decorateEyebrows(main);
 }
 
 /**
