@@ -74,10 +74,15 @@
   --radius-pill: 999px;
 
   /* layout */
-  --height-superbar: 40px;
-  --height-navbar: 80px;
-  --nav-height: var(--height-navbar);
+  --header-height: 135px;
   --content-width: 1260px;
+}
+
+@media (width >= 1200px) {
+  :root {
+    /* layout */
+    --header-height: 144px;
+  }
 }
 
 /* fallback font */
@@ -112,7 +117,8 @@ body.appear {
 }
 
 header {
-  height: var(--nav-height);
+  height: var(--header-height);
+  transition: height 0.2s;
 }
 
 header .header,
@@ -333,7 +339,8 @@ button.button.cta:disabled {
   color: var(--color-gray-500);
 }
 
-main img {
+img {
+  display: block;
   max-width: 100%;
   width: auto;
   height: auto;
@@ -345,9 +352,20 @@ main img {
   width: 24px;
 }
 
-.icon img {
+.icon img,
+.icon svg {
   height: 100%;
   width: 100%;
+}
+
+.icon.icon-chevron img,
+.icon.icon-chevron svg {
+  transition: transform 0.2s;
+}
+
+.icon.chevron-left img,
+.icon.chevron-left svg {
+  transform: rotate(90deg);
 }
 
 /* sections */
