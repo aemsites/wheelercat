@@ -1,0 +1,21 @@
+{
+  "en": {
+    "search": "Search",
+    "searchFormLabel": "Search",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "paginationLabel": "Pagination",
+    "badgeNewEquipment": "New Equipment",
+    "badgeUsedEquipment": "Used Equipment",
+    "model": "Model",
+    "location": "Location",
+    "hours": "Hours",
+    "hoursSuffix": "hrs",
+    "price": "Price",
+    "autocompleteLabel": "Search suggestions",
+    "viewAllResults": "View all results",
+    "noResults": "No results found"
+  }
+}

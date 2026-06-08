@@ -136,6 +136,28 @@ function decorateSearch(section) {
   form.append(label, input);
   section.textContent = '';
   section.append(form);
+
+  const searchModulePath = `${window.hlx?.codeBasePath || ''}/widgets/search-results/search-results.js`;
+  let autocompleteInit;
+
+  const initAutocomplete = () => {
+    if (!autocompleteInit) {
+      autocompleteInit = import(searchModulePath)
+        .then((mod) => mod.attachSearchAutocomplete(input, { anchor: form }));
+    }
+    return autocompleteInit;
+  };
+
+  input.addEventListener('focus', initAutocomplete);
+  input.addEventListener('click', initAutocomplete);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = input.value.trim();
+    if (query) {
+      window.location.href = `/search?search=${encodeURIComponent(query)}`;
+    }
+  });
 }
 
 /**

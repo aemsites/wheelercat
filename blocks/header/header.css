@@ -1,7 +1,7 @@
 header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-bg);
   background-image: linear-gradient(var(--color-bg) 83px, var(--color-gray-200) 83px);
@@ -193,6 +193,7 @@ header .header-search form {
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: center;
+  position: relative;
   border-radius: var(--radius-pill);
   padding: 0 0.8em;
   background-color: var(--color-bg);
