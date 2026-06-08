@@ -16,6 +16,14 @@
     "price": "Price",
     "autocompleteLabel": "Search suggestions",
     "viewAllResults": "View all results",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "emptyStateTitle": "Start typing to search Wheeler Cat",
+    "emptyStateIntro": "Use the search box above to find new and used Cat equipment, attachments, parts, and pages across wheelercat.com. Results appear here as you type — use a product name, model number, city, or several words together to narrow your results.",
+    "emptyStateNewTitle": "New equipment",
+    "emptyStateNewText": "Search by product type, model, or attachment name.",
+    "emptyStateUsedTitle": "Used equipment",
+    "emptyStateUsedText": "Search by model, location, hours, or price — and combine terms to refine your results.",
+    "emptyStateOtherTitle": "Other site content",
+    "emptyStateOtherText": "You can also find locations, services, careers, and general information pages."
   }
 }

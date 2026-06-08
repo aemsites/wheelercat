@@ -555,6 +555,38 @@ function updateURL(filterConfig) {
 }
 
 /**
+ * Populate the empty-state prompt from widget copy.
+ * @param {HTMLElement} container
+ * @param {Object} copy
+ */
+function populateSearchPrompt(container, copy) {
+  const title = container.querySelector('.search-prompt-title');
+  if (title) title.textContent = copy.emptyStateTitle || 'Start typing to search';
+
+  const intro = container.querySelector('.search-prompt-intro');
+  if (intro) {
+    intro.textContent = copy.emptyStateIntro
+      || 'Use the search box above to find equipment and content across the site.';
+  }
+
+  const sections = container.querySelectorAll('.search-prompt-section');
+  const sectionCopy = [
+    { title: copy.emptyStateNewTitle, text: copy.emptyStateNewText },
+    { title: copy.emptyStateUsedTitle, text: copy.emptyStateUsedText },
+    { title: copy.emptyStateOtherTitle, text: copy.emptyStateOtherText },
+  ];
+
+  sections.forEach((section, index) => {
+    const data = sectionCopy[index];
+    if (!data) return;
+    const sectionTitle = section.querySelector('.search-prompt-section-title');
+    const sectionText = section.querySelector('.search-prompt-section-text');
+    if (sectionTitle) sectionTitle.textContent = data.title || '';
+    if (sectionText) sectionText.textContent = data.text || '';
+  });
+}
+
+/**
  * Build search UI and wire search/pagination.
  * @param {HTMLElement} container - .search-results root
  * @param {Object} config - Initial config
@@ -567,11 +599,13 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   const resultsElement = container.querySelector('.results');
   const infoElement = container.querySelector('.info');
   const paginationElement = container.querySelector('.pagination');
+  const promptElement = container.querySelector('.search-prompt');
 
-  const clearResults = () => {
+  const showEmptyState = () => {
     resultsElement.innerHTML = '';
     if (paginationElement) paginationElement.innerHTML = '';
     if (infoElement) infoElement.hidden = true;
+    if (promptElement) promptElement.hidden = false;
     container.classList.remove('search-results-has-query');
   };
 
@@ -657,11 +691,12 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   const runSearch = async (filterConfig = config, updateURLState = true) => {
     const query = (filterConfig.search || '').trim();
     if (!query) {
-      clearResults();
+      showEmptyState();
       if (updateURLState) updateURL({ search: '', page: 1 });
       return;
     }
 
+    if (promptElement) promptElement.hidden = true;
     const index = await loadSearchIndex();
     const results = filterBySearch(index, query);
     sortByRelevance(results, query);
@@ -712,7 +747,7 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   if (initialConfig.search?.trim()) {
     runSearch(initialConfig);
   } else {
-    clearResults();
+    showEmptyState();
   }
 
   window.addEventListener('popstate', (event) => {
@@ -762,6 +797,7 @@ export default async function decorate(widget) {
   const searchBtn = container.querySelector('.search-btn');
   if (searchBtn) searchBtn.setAttribute('aria-label', copy.search || 'Search');
 
+  populateSearchPrompt(container, copy);
   buildSearchFiltering(container, {}, copy);
 }
 
