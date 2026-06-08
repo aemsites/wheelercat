@@ -99,18 +99,24 @@ async function loadSearchIndex() {
     return window.searchResultsIndex;
   }
 
-  const base = window.hlx?.codeBasePath || '';
-  const [siteJson, usedJson] = await Promise.all([
-    fetchIndexJson(`${base}/query-index.json`),
-    fetchIndexJson(`${base}/used-equipment/query-index.json`),
-  ]);
+  if (!window.searchResultsIndexPromise) {
+    window.searchResultsIndexPromise = (async () => {
+      const base = window.hlx?.codeBasePath || '';
+      const [siteJson, usedJson] = await Promise.all([
+        fetchIndexJson(`${base}/query-index.json`),
+        fetchIndexJson(`${base}/used-equipment/query-index.json`),
+      ]);
 
-  const siteRows = Array.isArray(siteJson.data) ? siteJson.data : [];
-  const usedRows = Array.isArray(usedJson.data) ? usedJson.data : [];
-  const items = mergeSearchIndexes(siteRows, usedRows);
+      const siteRows = Array.isArray(siteJson.data) ? siteJson.data : [];
+      const usedRows = Array.isArray(usedJson.data) ? usedJson.data : [];
+      const items = mergeSearchIndexes(siteRows, usedRows);
 
-  window.searchResultsIndex = items;
-  return items;
+      window.searchResultsIndex = items;
+      return items;
+    })();
+  }
+
+  return window.searchResultsIndexPromise;
 }
 
 /**
@@ -559,6 +565,15 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   let currentPage = 1;
 
   const resultsElement = container.querySelector('.results');
+  const infoElement = container.querySelector('.info');
+  const paginationElement = container.querySelector('.pagination');
+
+  const clearResults = () => {
+    resultsElement.innerHTML = '';
+    if (paginationElement) paginationElement.innerHTML = '';
+    if (infoElement) infoElement.hidden = true;
+    container.classList.remove('search-results-has-query');
+  };
 
   const createFilterConfig = (resetPage = true) => {
     const filterConfig = { ...config };
@@ -579,7 +594,6 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
 
   const displayPagination = (totalResults, page, onPageChange) => {
     const pageNum = parseInt(page, 10) || 1;
-    const paginationElement = container.querySelector('.pagination');
     if (!paginationElement) return;
     const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE);
     paginationElement.innerHTML = '';
@@ -641,9 +655,16 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   };
 
   const runSearch = async (filterConfig = config, updateURLState = true) => {
+    const query = (filterConfig.search || '').trim();
+    if (!query) {
+      clearResults();
+      if (updateURLState) updateURL({ search: '', page: 1 });
+      return;
+    }
+
     const index = await loadSearchIndex();
-    const results = filterBySearch(index, filterConfig.search || '');
-    sortByRelevance(results, filterConfig.search || '');
+    const results = filterBySearch(index, query);
+    sortByRelevance(results, query);
 
     const page = parseInt(filterConfig.page, 10) || 1;
     currentPage = page;
@@ -652,6 +673,8 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
     const startNum = totalResults > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0;
     const endNum = Math.min(page * ITEMS_PER_PAGE, totalResults);
 
+    if (infoElement) infoElement.hidden = false;
+    container.classList.add('search-results-has-query');
     container.querySelector('#results-count').textContent = totalResults;
     container.querySelector('#results-start').textContent = startNum;
     container.querySelector('#results-end').textContent = endNum;
@@ -684,7 +707,13 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
   if (urlConfig.page) currentPage = parseInt(urlConfig.page, 10);
   if (urlConfig.search) searchElement.value = urlConfig.search;
 
-  runSearch(initialConfig);
+  loadSearchIndex();
+
+  if (initialConfig.search?.trim()) {
+    runSearch(initialConfig);
+  } else {
+    clearResults();
+  }
 
   window.addEventListener('popstate', (event) => {
     if (event.state?.filterConfig) {
