@@ -838,7 +838,7 @@ export default async function decorate(widget) {
   }
   widget.plpHydrating = false;
 
-  // Filters restored from URL params count as touched so a subsequent user interaction
+  // Filters restored from URL params count as interacted so a subsequent user interaction
   // doesn't silently drop them from the URL. Dataset-sourced values are not marked.
   if (urlParams.get('equipment')) widget.plpInteraction.add('equipment');
   if (urlParams.get('model')) widget.plpInteraction.add('model');

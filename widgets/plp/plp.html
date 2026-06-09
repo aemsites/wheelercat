@@ -57,12 +57,12 @@
       <option value="year-desc">Year: newest</option>
       <option value="hours-asc">Hours: lowest</option>
     </select> -->
-    <nav role="tablist" aria-label="Equipment condition">
-      <ul>
-        <li><button role="tab" aria-selected="false" data-copy="new">New</button></li>
-        <li><button role="tab" aria-selected="true" data-copy="used">Used</button></li>
-        <li><button role="tab" aria-selected="false" data-copy="rental">Rental</button></li>
-      </ul>
+    <nav aria-label="Equipment condition">
+      <div class="button-wrapper" role="tablist">
+        <button role="tab" aria-selected="false" data-copy="new">New</button>
+        <button role="tab" aria-selected="true" data-copy="used">Used</button>
+        <button role="tab" aria-selected="false" data-copy="rental">Rental</button>
+      </div>
     </nav>
   </header>
   <ul class="results" aria-live="polite">
