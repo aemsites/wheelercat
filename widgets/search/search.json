@@ -1,0 +1,32 @@
+{
+  "en": {
+    "search": "Search",
+    "searchFormLabel": "Search",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "paginationLabel": "Pagination",
+    "badgeNewEquipment": "New Equipment",
+    "badgeUsedEquipment": "Used Equipment",
+    "model": "Model",
+    "serialNumber": "S/N",
+    "location": "Location",
+    "hours": "Hours",
+    "hoursSuffix": "hrs",
+    "price": "Price",
+    "viewAllResults": "View all results",
+    "viewDetails": "View Details",
+    "learnMore": "Learn More",
+    "noResults": "No results found",
+    "noResultsTitle": "No results found",
+    "noResultsText": "Try different keywords or check your spelling.",
+    "emptyStateIntro": "Use the search box above to find new and used Cat equipment, attachments, parts, and pages across wheelercat.com. Results appear here as you type — use a product name, model number, city, or several words together to narrow your results.",
+    "emptyStateNewTitle": "New equipment",
+    "emptyStateNewText": "Search by product type, model, or attachment name.",
+    "emptyStateUsedTitle": "Used equipment",
+    "emptyStateUsedText": "Search by model, location, hours, or price — and combine terms to refine your results.",
+    "emptyStateOtherTitle": "Other site content",
+    "emptyStateOtherText": "You can also find locations, services, careers, and general information pages."
+  }
+}

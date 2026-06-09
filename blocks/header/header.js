@@ -136,6 +136,28 @@ function decorateSearch(section) {
   form.append(label, input);
   section.textContent = '';
   section.append(form);
+
+  const searchModulePath = `${window.hlx?.codeBasePath || ''}/widgets/search/search.js`;
+  let suggestionsInit;
+
+  const initSuggestions = () => {
+    if (!suggestionsInit) {
+      suggestionsInit = import(searchModulePath)
+        .then((mod) => mod.attachSearchSuggestions(input, { anchor: section }));
+    }
+    return suggestionsInit;
+  };
+
+  input.addEventListener('focus', initSuggestions);
+  input.addEventListener('click', initSuggestions);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = input.value.trim();
+    if (query) {
+      window.location.href = `/search?search=${encodeURIComponent(query)}`;
+    }
+  });
 }
 
 /**

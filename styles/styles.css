@@ -16,6 +16,8 @@
   --color-white: #fff;
   --color-yellow: #ffcd11;
   --color-yellow-dark: #b18d00;
+  --color-blue: #1d293d;
+  --color-blue-light: #cad5e2;
   --color-gray-100: #fbfafa;
   --color-gray-200: #f2f2f2;
   --color-gray-300: #ccc;
@@ -70,7 +72,7 @@
 
   /* radius */
   --radius-s: 8px;
-  --radius-card: 16px;
+  --radius-m: 16px;
   --radius-pill: 999px;
 
   /* shadow */
@@ -118,6 +120,10 @@ body {
 
 body.appear {
   display: block;
+}
+
+body[data-scroll="false"] {
+  overflow-y: hidden;
 }
 
 header {
@@ -229,13 +235,14 @@ a:any-link {
   overflow-wrap: break-word;
 }
 
-a:hover {
-  color: var(--color-heading);
+a:hover,
+a:focus-visible {
+  color: var(--color-black);
   text-decoration: underline;
 }
 
 /* buttons */
-p.button-wrapper {
+.button-wrapper {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
@@ -265,10 +272,13 @@ button.button {
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
-a.button[aria-disabled="true"],
+a.button[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 button.button:disabled {
   cursor: not-allowed;
-  pointer-events: none;
 }
 
 /* primary: black fill, white text */
@@ -279,20 +289,20 @@ button.button.primary {
   color: var(--color-white);
 }
 
-a.button.primary:hover,
-a.button.primary:focus-visible,
-button.button.primary:hover,
-button.button.primary:focus-visible {
-  border-color: var(--color-gray-700);
-  background-color: var(--color-gray-700);
-}
-
 a.button.primary[aria-disabled="true"],
 a.button.primary[aria-disabled="true"]:focus-visible,
 button.button.primary:disabled {
   border-color: var(--color-gray-300);
   background-color: var(--color-gray-300);
   color: var(--color-gray-500);
+}
+
+a.button.primary:not([aria-disabled="true"]):hover,
+a.button.primary:not([aria-disabled="true"]):focus-visible,
+button.button.primary:not(:disabled):hover,
+button.button.primary:not(:disabled):focus-visible {
+  border-color: var(--color-gray-700);
+  background-color: var(--color-gray-700);
 }
 
 /* secondary: outlined */
@@ -303,20 +313,20 @@ button.button.outline {
   color: var(--color-black);
 }
 
-a.button.outline:hover,
-a.button.outline:focus-visible,
-button.button.outline:hover,
-button.button.outline:focus-visible {
-  border-color: var(--color-gray-700);
-  background-color: var(--color-gray-700);
-  color: var(--color-white);
-}
-
 a.button.outline[aria-disabled="true"],
 a.button.outline[aria-disabled="true"]:focus-visible,
 button.button.outline:disabled {
   border-color: var(--color-gray-300);
   color: var(--color-gray-500);
+}
+
+a.button.outline:not([aria-disabled="true"]):hover,
+a.button.outline:not([aria-disabled="true"]):focus-visible,
+button.button.outline:not(:disabled):hover,
+button.button.outline:not(:disabled):focus-visible {
+  border-color: var(--color-gray-700);
+  background-color: var(--color-gray-700);
+  color: var(--color-white);
 }
 
 /* accent: yellow fill, black text — primary CTA */
@@ -327,20 +337,25 @@ button.button.cta {
   color: var(--color-black);
 }
 
-a.button.cta:hover,
-a.button.cta:focus-visible,
-button.button.cta:hover,
-button.button.cta:focus-visible {
-  border-color: var(--color-brand-dark);
-  background-color: var(--color-brand-dark);
-}
-
 a.button.cta[aria-disabled="true"],
 a.button.cta[aria-disabled="true"]:focus-visible,
 button.button.cta:disabled {
   border-color: var(--color-gray-300);
   background-color: var(--color-gray-300);
   color: var(--color-gray-500);
+}
+
+a.button.cta:not([aria-disabled="true"]):hover,
+a.button.cta:not([aria-disabled="true"]):focus-visible,
+button.button.cta:not(:disabled):hover,
+button.button.cta:not(:disabled):focus-visible {
+  border-color: var(--color-brand-dark);
+  background-color: var(--color-brand-dark);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
 }
 
 img {
@@ -352,8 +367,8 @@ img {
 
 .icon {
   display: inline-block;
-  height: 24px;
-  width: 24px;
+  height: 1em;
+  width: auto;
 }
 
 .icon img,
@@ -362,9 +377,16 @@ img {
   width: 100%;
 }
 
+.icon.icon-arrow img,
+.icon.icon-arrow svg,
 .icon.icon-chevron img,
 .icon.icon-chevron svg {
   transition: transform 0.2s;
+}
+
+.icon.arrow-left img,
+.icon.arrow-left svg {
+  transform: rotate(180deg);
 }
 
 .icon.chevron-left img,
@@ -391,4 +413,13 @@ main > .section:first-of-type {
   main > .section > div {
     padding: 0 var(--space-l);
   }
+}
+
+/* themes */
+body.center main .default-content-wrapper {
+  text-align: center;
+}
+
+body.center main .default-content-wrapper .button-wrapper {
+  justify-content: center;
 }
