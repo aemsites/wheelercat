@@ -15,7 +15,7 @@ async function loadWidgetCopy(lang) {
 
 /**
  * Determine equipment category from content path.
- * @param {string} path
+ * @param {string} path - Content path from the query index (e.g. /new/cat-320/index)
  * @returns {'new'|'used'|null}
  */
 function getCategoryFromPath(path) {
@@ -27,7 +27,7 @@ function getCategoryFromPath(path) {
 
 /**
  * Normalize a single item from the site query index.
- * @param {Object} row - Raw row from index
+ * @param {Object} row - Raw row from the site query-index.json
  * @returns {Object} Normalized search item
  */
 function normalizeQueryItem(row) {
@@ -43,7 +43,7 @@ function normalizeQueryItem(row) {
 
 /**
  * Normalize a single item from the used equipment query index.
- * @param {Object} row - Raw row from index
+ * @param {Object} row - Raw row from used-equipment/query-index.json
  * @returns {Object} Normalized search item
  */
 function normalizeUsedEquipmentItem(row) {
@@ -63,7 +63,7 @@ function normalizeUsedEquipmentItem(row) {
 
 /**
  * Fetch JSON from a path, returning an empty data array on failure.
- * @param {string} url
+ * @param {string} url - Full URL to fetch
  * @returns {Promise<Object>}
  */
 async function fetchIndexJson(url) {
@@ -73,8 +73,8 @@ async function fetchIndexJson(url) {
 
 /**
  * Merge site and used-equipment indexes, deduping by path with used-equipment precedence.
- * @param {Array<Object>} siteRows
- * @param {Array<Object>} usedRows
+ * @param {Array<Object>} siteRows - Rows from query-index.json
+ * @param {Array<Object>} usedRows - Rows from used-equipment/query-index.json
  * @returns {Array<Object>}
  */
 function mergeSearchIndexes(siteRows, usedRows) {
@@ -121,7 +121,7 @@ async function loadSearchIndex() {
 
 /**
  * Remove diacritical marks for accent-insensitive matching.
- * @param {string} str
+ * @param {string} str - Input string, possibly containing accented characters
  * @returns {string}
  */
 function removeAccents(str) {
@@ -131,7 +131,7 @@ function removeAccents(str) {
 
 /**
  * Normalize string for search: lowercase and remove accents.
- * @param {string} str
+ * @param {string} str - Input string to normalize
  * @returns {string}
  */
 function normalizeForSearch(str) {
@@ -140,7 +140,7 @@ function normalizeForSearch(str) {
 
 /**
  * Split a search string into normalized terms.
- * @param {string} searchTerm
+ * @param {string} searchTerm - Raw user input from the search field
  * @returns {string[]}
  */
 function parseSearchTerms(searchTerm) {
@@ -150,7 +150,7 @@ function parseSearchTerms(searchTerm) {
 
 /**
  * Original (display) terms from a search string.
- * @param {string} searchTerm
+ * @param {string} searchTerm - Raw user input from the search field
  * @returns {string[]}
  */
 function parseDisplayTerms(searchTerm) {
@@ -160,8 +160,8 @@ function parseDisplayTerms(searchTerm) {
 
 /**
  * Whether a single normalized term matches any searchable field on an item.
- * @param {Object} item
- * @param {string} termNorm
+ * @param {Object} item - Normalized search item
+ * @param {string} termNorm - Normalized (lowercase, no accents) search term
  * @returns {boolean}
  */
 function termMatchesItem(item, termNorm) {
@@ -194,7 +194,7 @@ function filterBySearch(index, searchTerm) {
 
 /**
  * Whether an item has a real OG image (not the default placeholder).
- * @param {Object} item
+ * @param {Object} item - Normalized search item
  * @returns {boolean}
  */
 function hasOgImage(item) {
@@ -206,8 +206,8 @@ function hasOgImage(item) {
 
 /**
  * Sort key for a single term against an item.
- * @param {Object} item
- * @param {string} termNorm
+ * @param {Object} item - Normalized search item
+ * @param {string} termNorm - Normalized search term to score against
  * @returns {number[]}
  */
 function getTermSortKey(item, termNorm) {
@@ -228,8 +228,8 @@ function getTermSortKey(item, termNorm) {
 
 /**
  * Combined relevance sort key for multiple terms.
- * @param {Object} item
- * @param {string[]} terms
+ * @param {Object} item - Normalized search item
+ * @param {string[]} terms - Normalized search terms
  * @returns {number[]}
  */
 function getMultiTermSortKey(item, terms) {
@@ -264,8 +264,6 @@ function sortByRelevance(results, searchTerm) {
   });
 }
 
-const IMAGE_QUERY_PARAMS = 'width=750&format=webply&optimize=medium';
-
 /**
  * Append image optimization query params to a URL.
  * @param {string} url - Image URL (path or full URL)
@@ -274,6 +272,7 @@ const IMAGE_QUERY_PARAMS = 'width=750&format=webply&optimize=medium';
 function addImageParams(url) {
   if (!url) return '';
   const sep = url.includes('?') ? '&' : '?';
+  const IMAGE_QUERY_PARAMS = 'width=750&format=webply&optimize=medium';
   return `${url}${sep}${IMAGE_QUERY_PARAMS}`;
 }
 
@@ -294,7 +293,7 @@ function getRelativeImagePath(imageUrl) {
 
 /**
  * Whether the URL is usable as a result card image.
- * @param {string} url
+ * @param {string} url - Raw URL string from the search index
  * @returns {boolean}
  */
 function isUsableImageUrl(url) {
@@ -322,7 +321,7 @@ function getResultImageSrc(item) {
 
 /**
  * Build a map from normalized index to original string index.
- * @param {string} original
+ * @param {string} original - Original (un-normalized) text
  * @returns {number[]} normalizedIndex → originalIndex
  */
 function getNormalizedToOriginalMap(original) {
@@ -332,6 +331,17 @@ function getNormalizedToOriginalMap(original) {
     for (let j = 0; j < norm.length; j += 1) map.push(i);
   }
   return map;
+}
+
+/**
+ * Escape a plain-text string for safe insertion into HTML.
+ * @param {string} str - Raw string from external data
+ * @returns {string} HTML-safe string
+ */
+function escapeHTML(str) {
+  const el = document.createElement('span');
+  el.textContent = str;
+  return el.innerHTML;
 }
 
 /**
@@ -361,7 +371,7 @@ function highlightTerms(text, terms) {
     }
   });
 
-  if (!intervals.length) return text;
+  if (!intervals.length) return escapeHTML(text);
 
   intervals.sort((a, b) => a[0] - b[0]);
   const merged = [intervals[0]];
@@ -377,18 +387,18 @@ function highlightTerms(text, terms) {
   let result = '';
   let pos = 0;
   merged.forEach(([start, end]) => {
-    result += text.substring(pos, start);
-    result += `<span class="highlight">${text.substring(start, end)}</span>`;
+    result += escapeHTML(text.substring(pos, start));
+    result += `<span class="highlight">${escapeHTML(text.substring(start, end))}</span>`;
     pos = end;
   });
-  result += text.substring(pos);
+  result += escapeHTML(text.substring(pos));
   return result;
 }
 
 /**
  * Format hours for display.
- * @param {string} value
- * @param {Object} copy
+ * @param {string} value - Raw hours value from the search index
+ * @param {Object} copy - Widget copy for the current language
  * @returns {string}
  */
 function formatHours(value, copy) {
@@ -402,10 +412,10 @@ function formatHours(value, copy) {
 
 /**
  * Create a spec row for used equipment cards.
- * @param {string} label
- * @param {string} value
- * @param {string[]} searchTerms
- * @param {string} className
+ * @param {string} label - Display label (e.g. "Model")
+ * @param {string} value - Spec value from the search item
+ * @param {string[]} searchTerms - Active search terms for highlight
+ * @param {string} className - CSS class(es) for the wrapper div
  * @returns {HTMLElement|null}
  */
 function createSpec(label, value, searchTerms, className = 'spec') {
@@ -415,15 +425,15 @@ function createSpec(label, value, searchTerms, className = 'spec') {
   const dt = document.createElement('dt');
   dt.textContent = label;
   const dd = document.createElement('dd');
-  dd.innerHTML = searchTerms?.length ? highlightTerms(value, searchTerms) : value;
+  dd.innerHTML = searchTerms?.length ? highlightTerms(value, searchTerms) : escapeHTML(value);
   wrap.append(dt, dd);
   return wrap;
 }
 
 /**
  * Create used equipment specs block.
- * @param {Object} item
- * @param {Object} copy
+ * @param {Object} item - Normalized used equipment search item
+ * @param {Object} copy - Widget copy for the current language
  * @returns {HTMLElement|null}
  */
 function createUsedEquipmentSpecs(item, copy) {
@@ -444,8 +454,8 @@ function createUsedEquipmentSpecs(item, copy) {
 
 /**
  * Create a category badge element.
- * @param {Object} item
- * @param {Object} copy
+ * @param {Object} item - Normalized search item with a category field
+ * @param {Object} copy - Widget copy for the current language
  * @returns {HTMLElement|null}
  */
 function createCategoryBadge(item, copy) {
@@ -500,7 +510,7 @@ function createResultCard(item, copy = {}) {
   const titleText = item.title || '';
   title.innerHTML = item.searchTerms?.length
     ? highlightTerms(titleText, item.searchTerms)
-    : titleText;
+    : escapeHTML(titleText);
   header.appendChild(title);
   content.appendChild(header);
 
@@ -515,7 +525,7 @@ function createResultCard(item, copy = {}) {
     description.className = 'description';
     description.innerHTML = item.searchTerms?.length
       ? highlightTerms(descText, item.searchTerms)
-      : descText;
+      : escapeHTML(descText);
     content.appendChild(description);
   }
 
@@ -537,7 +547,7 @@ function getConfigFromURL() {
 
 /**
  * Update URL with current filter state.
- * @param {Object} filterConfig
+ * @param {Object} filterConfig - Current filter values (search, page, etc.)
  */
 function updateURL(filterConfig) {
   const params = new URLSearchParams();
@@ -556,8 +566,8 @@ function updateURL(filterConfig) {
 
 /**
  * Populate the empty-state prompt from widget copy.
- * @param {HTMLElement} container
- * @param {Object} copy
+ * @param {HTMLElement} container - .search-results root element
+ * @param {Object} copy - Widget copy for the current language
  */
 function populateSearchPrompt(container, copy) {
   const title = container.querySelector('.search-prompt-title');
@@ -801,26 +811,23 @@ export default async function decorate(widget) {
   buildSearchFiltering(container, {}, copy);
 }
 
-const AUTOCOMPLETE_IMAGE_PARAMS = 'width=120&height=90&format=webply&optimize=medium';
-const AUTOCOMPLETE_DEBOUNCE_MS = 150;
-const DESKTOP_MEDIA = '(width >= 1200px)';
-
 /**
  * Get a compact image src for autocomplete items.
- * @param {Object} item
+ * @param {Object} item - Normalized search item
  * @returns {string}
  */
 function getAutocompleteImageSrc(item) {
   if (!hasOgImage(item)) return '';
   const path = getRelativeImagePath(item.image);
   const sep = path.includes('?') ? '&' : '?';
+  const AUTOCOMPLETE_IMAGE_PARAMS = 'width=120&height=90&format=webply&optimize=medium';
   return `${path}${sep}${AUTOCOMPLETE_IMAGE_PARAMS}`;
 }
 
 /**
  * Run a filtered, sorted search against the index.
- * @param {string} searchTerm
- * @param {number} [limit]
+ * @param {string} searchTerm - Raw user input from the search field
+ * @param {number} [limit] - Optional maximum number of results to return
  * @returns {Promise<Array<Object>>}
  */
 async function searchItems(searchTerm, limit) {
@@ -832,8 +839,8 @@ async function searchItems(searchTerm, limit) {
 
 /**
  * Create a compact autocomplete result row.
- * @param {Object} item
- * @param {Object} copy
+ * @param {Object} item - Normalized search item
+ * @param {Object} copy - Widget copy for the current language
  * @returns {HTMLElement}
  */
 function createAutocompleteItem(item, copy) {
@@ -866,7 +873,7 @@ function createAutocompleteItem(item, copy) {
   const titleText = item.title || '';
   title.innerHTML = item.searchTerms?.length
     ? highlightTerms(titleText, item.searchTerms)
-    : titleText;
+    : escapeHTML(titleText);
   titleRow.appendChild(title);
 
   const badge = createCategoryBadge(item, copy);
@@ -896,7 +903,7 @@ function createAutocompleteItem(item, copy) {
       const excerpt = descText.length > 80 ? `${descText.slice(0, 80)}…` : descText;
       meta.innerHTML = item.searchTerms?.length
         ? highlightTerms(excerpt, item.searchTerms)
-        : excerpt;
+        : escapeHTML(excerpt);
       content.appendChild(meta);
     }
   }
@@ -908,10 +915,12 @@ function createAutocompleteItem(item, copy) {
 
 /**
  * Position the autocomplete overlay relative to its anchor.
- * @param {HTMLElement} overlay
- * @param {HTMLElement} anchor
+ * @param {HTMLElement} overlay - The autocomplete overlay element
+ * @param {HTMLElement} anchor - The element the overlay is anchored to
  */
 function positionAutocompleteOverlay(overlay, anchor) {
+  const DESKTOP_MEDIA = '(width >= 1200px)';
+
   const rect = anchor.getBoundingClientRect();
   const isDesktop = window.matchMedia(DESKTOP_MEDIA).matches;
 
@@ -1083,6 +1092,8 @@ export async function attachSearchAutocomplete(input, opts = {}) {
     updateViewAllHref(trimmed);
     showOverlay();
   };
+
+  const AUTOCOMPLETE_DEBOUNCE_MS = 150;
 
   const scheduleSearch = () => {
     clearTimeout(debounceTimer);
