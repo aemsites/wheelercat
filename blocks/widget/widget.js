@@ -1,4 +1,4 @@
-import { loadCSS } from '../../scripts/aem.js';
+import { loadCSS, decorateIcons } from '../../scripts/aem.js';
 
 /**
  * Constructs URL for widget resources.
@@ -38,6 +38,8 @@ export default async function decorate(widget) {
       if (mod.default) await mod.default(widget);
     })();
     await Promise.all([cssLoaded, decorationComplete]);
+
+    decorateIcons(widget);
 
     let cssPrefix = widgetName;
     if (widgetPath !== widgetName) {
