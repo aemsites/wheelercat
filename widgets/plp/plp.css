@@ -19,8 +19,10 @@
   padding: 0;
 }
 
-.plp fieldset ul li + li {
-  margin-top: var(--space-xs);
+.plp fieldset ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .plp .form-field > label,
@@ -124,7 +126,7 @@
   content: '';
   position: absolute;
   inset: 1px;
-  background-color: var(--color-black);
+  background-color: currentcolor;
   mask-image: url('/icons/check.svg');
   mask-repeat: no-repeat;
   mask-size: contain;
@@ -146,6 +148,12 @@
 
 .plp label:has(input[type="checkbox"]:disabled) .checkbox {
   background-color: var(--color-bg-subtle);
+}
+
+.plp input[type="checkbox"]:checked:disabled + .checkbox {
+  border-color: var(--color-gray-300);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-gray-300);
 }
 
 /* filters sidebar */
