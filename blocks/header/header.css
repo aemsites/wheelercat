@@ -71,6 +71,7 @@ header .header-context {
 
 header .header-context a {
   display: flex;
+  align-items: center;
   gap: 0.5ch;
   font-weight: bold;
   text-decoration: underline;
@@ -210,6 +211,7 @@ header .header-nav li > ul li + li {
 /* header search */
 header .header-search {
   grid-area: search;
+  position: relative;
 }
 
 header .header-search form {

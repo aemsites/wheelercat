@@ -137,19 +137,19 @@ function decorateSearch(section) {
   section.textContent = '';
   section.append(form);
 
-  const searchModulePath = `${window.hlx?.codeBasePath || ''}/widgets/search-results/search-results.js`;
-  let autocompleteInit;
+  const searchModulePath = `${window.hlx?.codeBasePath || ''}/widgets/search/search.js`;
+  let suggestionsInit;
 
-  const initAutocomplete = () => {
-    if (!autocompleteInit) {
-      autocompleteInit = import(searchModulePath)
-        .then((mod) => mod.attachSearchAutocomplete(input, { anchor: form }));
+  const initSuggestions = () => {
+    if (!suggestionsInit) {
+      suggestionsInit = import(searchModulePath)
+        .then((mod) => mod.attachSearchSuggestions(input, { anchor: section }));
     }
-    return autocompleteInit;
+    return suggestionsInit;
   };
 
-  input.addEventListener('focus', initAutocomplete);
-  input.addEventListener('click', initAutocomplete);
+  input.addEventListener('focus', initSuggestions);
+  input.addEventListener('click', initSuggestions);
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
