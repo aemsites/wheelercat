@@ -46,17 +46,17 @@
     </div> -->
   </form>
 </aside>
-<section>
-  <header>
+<section class="listing">
+  <header class="controls">
     <p><span data-copy="showing">Showing</span> <span id="result-min">0</span>–<span id="result-max">0</span> <span data-copy="of">of</span> <span id="result-total">0</span></p>
-    <label for="sort-by">Sort by</label>
+    <!-- <label for="sort-by">Sort by</label>
     <select id="sort-by">
       <option value="distance">Distance</option>
       <option value="price-asc">Price: low to high</option>
       <option value="price-desc">Price: high to low</option>
       <option value="year-desc">Year: newest</option>
       <option value="hours-asc">Hours: lowest</option>
-    </select>
+    </select> -->
     <nav role="tablist" aria-label="Equipment condition">
       <ul>
         <li><button role="tab" aria-selected="false" data-copy="new">New</button></li>
@@ -67,8 +67,8 @@
   </header>
   <ul class="results" aria-live="polite">
   </ul>
-  <footer>
-    <nav class="pagination button-wrapper" data-copy="pagination" data-copy-target="aria-label" aria-label="Pagination">
+  <footer class="pagination">
+    <nav class="button-wrapper" data-copy="pagination" data-copy-target="aria-label" aria-label="Pagination">
       <button type="button" class="button outline" disabled data-copy="previous" data-copy-target="aria-label">
         <span class="icon icon-arrow arrow-left"></span>
       </button>

@@ -1,4 +1,4 @@
-import { toClassName } from '../../scripts/aem.js';
+import { toClassName, createOptimizedPicture, decorateIcons } from '../../scripts/aem.js';
 
 /**
  * Load widget copy from the widget's local JSON (same name as the script).
@@ -248,27 +248,142 @@ function bindRangeDesc(input, format = (v) => v) {
 const ITEMS_PER_PAGE = 12;
 
 /**
+ * Format an hours value for display.
+ * @param {string} value - Raw hours value from the index
+ * @param {Object} copy - Widget copy for the current language
+ * @returns {string}
+ */
+function formatHours(value, copy) {
+  if (!value || value === 'N/A') return '';
+  const num = String(value).replace(/,/g, '');
+  if (/^\d+$/.test(num)) {
+    return `${Number(num).toLocaleString('en-US')} ${copy.hoursSuffix || 'hrs'}`;
+  }
+  return value;
+}
+
+/**
  * Create a result card element for a single index row.
  * @param {Object} row - Raw index row
+ * @param {Object} [copy={}] - Widget copy for the current language
  * @returns {HTMLLIElement}
  */
-function createResultCard(row) {
+function createResultCard(row, copy = {}) {
   const li = document.createElement('li');
-  li.textContent = row.title || row.path;
+  li.className = 'result';
+
+  const mediaWrapper = document.createElement('div');
+  mediaWrapper.className = 'media-wrapper';
+  if (row.image) {
+    mediaWrapper.appendChild(createOptimizedPicture(row.image, row.title || '', false, [{ width: 750 }]));
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'placeholder';
+    mediaWrapper.appendChild(placeholder);
+  }
+  if (row.year) {
+    const yearBadge = document.createElement('span');
+    yearBadge.className = 'badge year';
+    yearBadge.textContent = row.year;
+    mediaWrapper.appendChild(yearBadge);
+  }
+  const usedBadge = document.createElement('span');
+  usedBadge.className = 'badge used';
+  const usedIcon = document.createElement('span');
+  usedIcon.className = 'icon icon-certified-used';
+  usedBadge.appendChild(usedIcon);
+  mediaWrapper.appendChild(usedBadge);
+  decorateIcons(mediaWrapper);
+  li.appendChild(mediaWrapper);
+
+  const body = document.createElement('div');
+  body.className = 'body-wrapper';
+
+  const typeLabel = getEquipmentType(row.path);
+  if (typeLabel) {
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow type';
+    eyebrow.textContent = typeLabel;
+    body.appendChild(eyebrow);
+  }
+
+  if (row.title) {
+    const heading = document.createElement('h2');
+    if (typeLabel) heading.dataset.eyebrow = typeLabel;
+    heading.textContent = row.title;
+    body.appendChild(heading);
+  }
+
+  const formattedHours = formatHours(row.hours, copy);
+  if (row.serialNum || formattedHours) {
+    const metaList = document.createElement('ul');
+    metaList.className = 'meta';
+    if (row.serialNum) {
+      const snItem = document.createElement('li');
+      snItem.textContent = `${copy.serialNumber || 'S/N'}: ${row.serialNum}`;
+      metaList.appendChild(snItem);
+    }
+    if (formattedHours) {
+      const hoursItem = document.createElement('li');
+      hoursItem.textContent = formattedHours;
+      metaList.appendChild(hoursItem);
+    }
+    body.appendChild(metaList);
+  }
+
+  li.appendChild(body);
+
+  const footer = document.createElement('footer');
+
+  if (row.price) {
+    const priceMeta = document.createElement('p');
+    priceMeta.className = 'meta';
+    priceMeta.textContent = copy.price || 'Price';
+    footer.appendChild(priceMeta);
+
+    const priceEl = document.createElement('p');
+    priceEl.className = 'price';
+    priceEl.textContent = row.price;
+    footer.appendChild(priceEl);
+
+    footer.appendChild(document.createElement('hr'));
+  }
+
+  if (row.location) {
+    const locationEl = document.createElement('p');
+    locationEl.className = 'meta location';
+    locationEl.textContent = normalizeLocation(row.location);
+    footer.appendChild(locationEl);
+  }
+
+  const buttonLabel = copy.viewDetails || 'View Details';
+  const buttonWrapper = document.createElement('p');
+  buttonWrapper.className = 'button-wrapper';
+  const button = document.createElement('a');
+  button.href = row.path || '#';
+  button.className = 'button primary';
+  button.textContent = buttonLabel;
+  button.setAttribute('aria-label', `${buttonLabel} – ${row.title || ''}`);
+  buttonWrapper.appendChild(button);
+  footer.appendChild(buttonWrapper);
+
+  li.appendChild(footer);
   return li;
 }
 
 /**
  * Render one page of results into the results list.
- * @param {HTMLUListElement} element - .results list element
+ * @param {HTMLElement} widget - Widget container element
  * @param {Array<Object>} results - Full result set
  * @param {number} page - Current page (1-based)
  */
-function displayResults(element, results, page) {
+function displayResults(widget, results, page) {
+  const element = widget.querySelector('.results');
+  const copy = widget.plpCopy || {};
   element.innerHTML = '';
   const start = (page - 1) * ITEMS_PER_PAGE;
   results.slice(start, start + ITEMS_PER_PAGE)
-    .forEach((row) => element.append(createResultCard(row)));
+    .forEach((row) => element.append(createResultCard(row, copy)));
 }
 
 /**
@@ -350,8 +465,8 @@ function renderPage(widget, results, page) {
   widget.querySelector('#result-max').textContent = end;
   widget.querySelector('#result-total').textContent = total;
 
-  displayResults(widget.querySelector('.results'), results, page);
-  displayPagination(widget.querySelector('nav.pagination'), total, page);
+  displayResults(widget, results, page);
+  displayPagination(widget.querySelector('.pagination'), total, page);
 }
 
 /**
@@ -493,22 +608,23 @@ function recomputeDealers(widget, rows) {
  */
 function updateURL(widget) {
   const state = getFilterState(widget);
+  const interaction = widget.plpInteraction || new Set();
   const priceInput = widget.querySelector('#filter-price');
   const yearInput = widget.querySelector('#filter-year');
   const equipmentSelect = widget.querySelector('#filter-equipment');
 
   const params = new URLSearchParams();
-  if (equipmentSelect?.value && !equipmentSelect.hasAttribute('data-readonly')) {
+  if (interaction.has('equipment') && equipmentSelect?.value && !equipmentSelect.hasAttribute('data-readonly')) {
     params.set('equipment', equipmentSelect.value);
   }
-  if (state.model) params.set('model', state.model);
-  if (priceInput && parseFloat(priceInput.value) < parseFloat(priceInput.max)) {
+  if (interaction.has('model') && state.model) params.set('model', state.model);
+  if (interaction.has('price') && priceInput && parseFloat(priceInput.value) < parseFloat(priceInput.max)) {
     params.set('price', priceInput.value);
   }
-  if (yearInput && parseFloat(yearInput.value) < parseFloat(yearInput.max)) {
+  if (interaction.has('year') && yearInput && parseFloat(yearInput.value) < parseFloat(yearInput.max)) {
     params.set('year', yearInput.value);
   }
-  state.dealers.forEach((dealer) => params.append('dealer', dealer));
+  if (interaction.has('dealer')) state.dealers.forEach((dealer) => params.append('dealer', dealer));
 
   const newURL = params.toString()
     ? `${window.location.pathname}?${params.toString()}`
@@ -573,7 +689,8 @@ function buildFilters(widget, rows, copy) {
     bindRangeDesc(hoursInput);
   }
 
-  equipmentSelect.addEventListener('change', () => {
+  equipmentSelect.addEventListener('change', (e) => {
+    if (e.isTrusted) widget.plpInteraction.add('equipment');
     populateModelFilter(modelSelect, rows, equipmentSelect.value);
     const base = equipmentSelect.value
       ? rows.filter((r) => toClassName(getEquipmentType(r.path)) === equipmentSelect.value)
@@ -582,7 +699,8 @@ function buildFilters(widget, rows, copy) {
     applyFilters(widget, rows, true);
   });
 
-  modelSelect.addEventListener('change', () => {
+  modelSelect.addEventListener('change', (e) => {
+    if (e.isTrusted) widget.plpInteraction.add('model');
     const base = rows.filter((r) => {
       const type = toClassName(getEquipmentType(r.path));
       if (equipmentSelect.value && type !== equipmentSelect.value) return false;
@@ -593,11 +711,24 @@ function buildFilters(widget, rows, copy) {
     applyFilters(widget, rows, true);
   });
 
-  if (priceInput) priceInput.addEventListener('change', () => applyFilters(widget, rows, true));
-  if (yearInput) yearInput.addEventListener('change', () => applyFilters(widget, rows, true));
+  if (priceInput) {
+    priceInput.addEventListener('change', (e) => {
+      if (e.isTrusted) widget.plpInteraction.add('price');
+      applyFilters(widget, rows, true);
+    });
+  }
+  if (yearInput) {
+    yearInput.addEventListener('change', (e) => {
+      if (e.isTrusted) widget.plpInteraction.add('year');
+      applyFilters(widget, rows, true);
+    });
+  }
   if (hoursInput) hoursInput.addEventListener('change', () => applyFilters(widget, rows, true));
 
-  dealerFieldset.addEventListener('change', () => applyFilters(widget, rows, true));
+  dealerFieldset.addEventListener('change', (e) => {
+    if (e.isTrusted) widget.plpInteraction.add('dealer');
+    applyFilters(widget, rows, true);
+  });
 }
 
 /**
@@ -641,9 +772,11 @@ export default async function decorate(widget) {
   const lang = (document.documentElement.lang || 'en').split('-')[0];
   const copy = await loadWidgetCopy(lang);
   hydrateCopy(widget, copy);
+  widget.plpCopy = copy;
 
   const index = await loadIndex();
   widget.plpResults = index;
+  widget.plpInteraction = new Set();
   buildFilters(widget, index, copy);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -705,6 +838,14 @@ export default async function decorate(widget) {
   }
   widget.plpHydrating = false;
 
+  // Filters restored from URL params count as touched so a subsequent user interaction
+  // doesn't silently drop them from the URL. Dataset-sourced values are not marked.
+  if (urlParams.get('equipment')) widget.plpInteraction.add('equipment');
+  if (urlParams.get('model')) widget.plpInteraction.add('model');
+  if (urlParams.get('price')) widget.plpInteraction.add('price');
+  if (urlParams.get('year')) widget.plpInteraction.add('year');
+  if (urlParams.getAll('dealer').length) widget.plpInteraction.add('dealer');
+
   const tabs = [...widget.querySelectorAll('button[role="tab"]')];
   const category = urlParams.get('category') || widget.dataset.category
     || getCategoryFromPath(window.location.pathname);
@@ -729,7 +870,7 @@ export default async function decorate(widget) {
   let currentPage = 1;
   renderPage(widget, widget.plpResults, currentPage);
 
-  widget.querySelector('nav.pagination').addEventListener('click', (e) => {
+  widget.querySelector('.pagination').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-page]');
     if (!btn || btn.disabled) return;
     currentPage = parseInt(btn.dataset.page, 10);
