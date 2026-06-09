@@ -1,35 +1,32 @@
 <div class="search-results">
-  <form class="controls" aria-label="Search">
-    <div class="search">
-      <input id="fulltext" type="search" aria-label="Search" placeholder="">
-      <button type="submit" class="search-btn" aria-label="Search">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
-        </svg>
-      </button>
-    </div>
+  <form data-copy="searchFormLabel" data-copy-target="aria-label" aria-label="Search">
+    <label for="fulltext">
+      <span class="icon icon-search"></span>
+    </label>
+    <input id="fulltext" type="search" data-copy="search" data-copy-target="placeholder,aria-label" aria-label="Search" placeholder="Search">
   </form>
-  <div class="info" hidden>
-    <p><span class="showing-label"></span> <span id="results-start">0</span>-<span id="results-end">0</span> <span class="of-label"></span> <span id="results-count">0</span></p>
-  </div>
-  <div class="search-prompt">
-    <h2 class="search-prompt-title"></h2>
-    <p class="search-prompt-intro"></p>
-    <div class="search-prompt-examples">
-      <section class="search-prompt-section">
-        <h3 class="search-prompt-section-title"></h3>
-        <p class="search-prompt-section-text"></p>
-      </section>
-      <section class="search-prompt-section">
-        <h3 class="search-prompt-section-title"></h3>
-        <p class="search-prompt-section-text"></p>
-      </section>
-      <section class="search-prompt-section">
-        <h3 class="search-prompt-section-title"></h3>
-        <p class="search-prompt-section-text"></p>
-      </section>
-    </div>
-  </div>
+  <p class="info" hidden>
+    <span data-copy="showing">Showing</span> <span id="results-start">0</span>-<span id="results-end">0</span> <span data-copy="of">of</span> <span id="results-count">0</span>
+  </p>
+  <section class="search-prompt">
+    <p class="intro" data-copy="emptyStateIntro">Use the search box above to find equipment and content across the site.</p>
+    <section>
+      <h2 data-copy="emptyStateNewTitle">New equipment</h2>
+      <p data-copy="emptyStateNewText">Search by product type, model, or attachment name.</p>
+    </section>
+    <section>
+      <h2 data-copy="emptyStateUsedTitle">Used equipment</h2>
+      <p data-copy="emptyStateUsedText">Search by model, location, hours, or price.</p>
+    </section>
+    <section>
+      <h2 data-copy="emptyStateOtherTitle">Other site content</h2>
+      <p data-copy="emptyStateOtherText">You can also find locations, services, careers, and general information pages.</p>
+    </section>
+  </section>
   <ul class="results"></ul>
-  <nav class="pagination" aria-label="Pagination"></nav>
+  <section class="no-results" hidden>
+    <h2 data-copy="noResultsTitle">No results found</h2>
+    <p data-copy="noResultsText">Try different keywords or check your spelling.</p>
+  </section>
+  <nav class="pagination" data-copy="paginationLabel" data-copy-target="aria-label" aria-label="Pagination"></nav>
 </div>
