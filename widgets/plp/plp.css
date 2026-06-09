@@ -1,4 +1,5 @@
-.plp ul {
+.plp ul,
+.plp ol {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -147,8 +148,24 @@
   background-color: var(--color-bg-subtle);
 }
 
-/* tablist */
+/* filters sidebar */
+.plp .filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
 
+.plp .filters p {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* results */
+.plp .results {
+  scroll-margin-top: calc(var(--header-height) + 1em);
+}
+
+/* tablist */
 .plp nav[role="tablist"] ul {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -172,14 +189,64 @@
   box-shadow: inset 0 -2px 0 var(--color-black);
 }
 
-/* filters sidebar */
-.plp .filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
+/* pagination */
+.plp .pagination {
+  align-items: center;
+  justify-content: center;
 }
 
-.plp .filters p {
-  margin: 0;
-  font-size: var(--text-xs);
+@media (width >= 900px) {
+  .plp .pagination {
+    gap: var(--space-s) var(--space-xl);
+  }
+}
+
+.plp .pagination[hidden] {
+  display: none;
+}
+
+.plp .pagination .ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1ch;
+}
+
+.plp .pagination button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-s);
+  padding: 0;
+  font-weight: unset;
+}
+
+.plp .pagination > button {
+  font-size: 24px;
+}
+
+.plp .pagination ol {
+  justify-content: center;
+}
+
+.plp .pagination ol button {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--color-blue-light) 49%, transparent 50%);
+  transition: color 0.2s;
+}
+
+.plp .pagination > button:not([disabled]) {
+  box-shadow: var(--shadow-s);
+  transition: all 0.2s;
+}
+
+.plp .pagination ol button[aria-current],
+.plp .pagination ol button:hover,
+.plp .pagination ol button:focus-visible {
+  background-image: radial-gradient(var(--color-blue) 49%, transparent 50%);
+  color: var(--color-bg);
+}
+
+.plp .pagination > button:not([disabled]):hover,
+.plp .pagination > button:not([disabled]):focus-visible {
+  box-shadow: var(--shadow-m);
 }

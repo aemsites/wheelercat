@@ -287,6 +287,115 @@ async function loadIndex() {
   return window.plpIndexPromise;
 }
 
+const ITEMS_PER_PAGE = 12;
+
+/**
+ * Create a result card element for a single index row.
+ * @param {Object} row - Raw index row
+ * @returns {HTMLLIElement}
+ */
+function createResultCard(row) {
+  const li = document.createElement('li');
+  li.textContent = row.title || row.path;
+  return li;
+}
+
+/**
+ * Render one page of results into the results list.
+ * @param {HTMLUListElement} element - .results list element
+ * @param {Array<Object>} results - Full result set
+ * @param {number} page - Current page (1-based)
+ */
+function displayResults(element, results, page) {
+  element.innerHTML = '';
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  results.slice(start, start + ITEMS_PER_PAGE)
+    .forEach((row) => element.append(createResultCard(row)));
+}
+
+/**
+ * Render pagination controls into the nav element.
+ * @param {HTMLElement} element - Pagination nav element
+ * @param {number} totalResults - Total number of results
+ * @param {number} page - Current page number (1-based)
+ */
+function displayPagination(element, totalResults, page) {
+  if (!element) return;
+  const pageNum = parseInt(page, 10) || 1;
+  const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE);
+  const prevBtn = element.querySelector('button:first-child');
+  const nextBtn = element.querySelector('button:last-child');
+  const pagesList = element.querySelector('ol');
+
+  pagesList.innerHTML = '';
+
+  if (totalPages <= 1) {
+    element.hidden = true;
+    return;
+  }
+
+  element.hidden = false;
+
+  prevBtn.disabled = pageNum <= 1;
+  if (pageNum > 1) prevBtn.dataset.page = pageNum - 1;
+  else delete prevBtn.dataset.page;
+
+  nextBtn.disabled = pageNum >= totalPages;
+  if (pageNum < totalPages) nextBtn.dataset.page = pageNum + 1;
+  else delete nextBtn.dataset.page;
+
+  const ellipsis = () => {
+    const li = document.createElement('li');
+    li.classList.add('ellipsis');
+    li.setAttribute('aria-hidden', true);
+    li.textContent = '…';
+    return li;
+  };
+
+  const pageItem = (num, current = false) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'button';
+    btn.textContent = num;
+    btn.dataset.page = num;
+    if (current) btn.setAttribute('aria-current', 'page');
+    li.appendChild(btn);
+    return li;
+  };
+
+  if (pageNum > 3) {
+    pagesList.appendChild(pageItem(1));
+    if (pageNum > 4) pagesList.appendChild(ellipsis());
+  }
+  for (let i = Math.max(1, pageNum - 2); i <= Math.min(totalPages, pageNum + 2); i += 1) {
+    pagesList.appendChild(pageItem(i, i === pageNum));
+  }
+  if (pageNum < totalPages - 2) {
+    if (pageNum < totalPages - 3) pagesList.appendChild(ellipsis());
+    pagesList.appendChild(pageItem(totalPages));
+  }
+}
+
+/**
+ * Render results and pagination for a given page, updating the result count.
+ * @param {HTMLElement} widget - Widget container element
+ * @param {Array<Object>} results - Full filtered result set
+ * @param {number} page - Current page (1-based)
+ */
+function renderPage(widget, results, page) {
+  const total = results.length;
+  const start = total > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0;
+  const end = Math.min(page * ITEMS_PER_PAGE, total);
+
+  widget.querySelector('#result-min').textContent = start;
+  widget.querySelector('#result-max').textContent = end;
+  widget.querySelector('#result-total').textContent = total;
+
+  displayResults(widget.querySelector('.results'), results, page);
+  displayPagination(widget.querySelector('nav.pagination'), total, page);
+}
+
 /**
  * Derive inventory category (new/used/rental) from the page pathname.
  * @param {string} pathname - window.location.pathname
@@ -336,5 +445,16 @@ export default async function decorate(widget) {
       tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
       tab.setAttribute('aria-selected', 'true');
     });
+  });
+
+  let currentPage = 1;
+  renderPage(widget, index, currentPage);
+
+  widget.querySelector('nav.pagination').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-page]');
+    if (!btn || btn.disabled) return;
+    currentPage = parseInt(btn.dataset.page, 10);
+    renderPage(widget, index, currentPage);
+    widget.querySelector('.results').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
