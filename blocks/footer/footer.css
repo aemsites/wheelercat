@@ -267,6 +267,7 @@ footer .footer-locale [aria-current]::after {
 /* footer social */
 footer .footer-social {
   grid-area: social;
+  font-size: 24px;
 }
 
 /* stylelint-disable-next-line no-descending-specificity */
