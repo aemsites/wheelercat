@@ -1,4 +1,5 @@
 import { getMetadata, decorateIcons } from '../../scripts/aem.js';
+import { decorateExternalLinks } from '../../scripts/scripts.js';
 import { loadFragment } from '../fragment/fragment.js';
 
 /**
@@ -89,7 +90,6 @@ function decorateNav(section) {
   });
 
   const nav = document.createElement('nav');
-  nav.id = 'nav';
   nav.classList.add(...section.classList);
   nav.append(list);
   section.replaceWith(nav);
@@ -223,5 +223,6 @@ export default async function decorate(block) {
   const hamburger = buildHamburger();
   block.prepend(hamburger);
 
+  decorateExternalLinks(block);
   decorateIcons(block);
 }
