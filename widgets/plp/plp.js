@@ -1,3 +1,5 @@
+import { toClassName } from '../../scripts/aem.js';
+
 /**
  * Load widget copy from the widget's local JSON (same name as the script).
  * @param {string} lang - Language key (e.g. en)
@@ -78,7 +80,7 @@ function populateEquipmentFilter(select, rows) {
   const types = [...new Set(rows.map((row) => getEquipmentType(row.path)).filter(Boolean))].sort();
   types.forEach((type) => {
     const option = document.createElement('option');
-    option.value = type;
+    option.value = toClassName(type);
     option.textContent = type;
     select.appendChild(option);
   });
@@ -92,7 +94,9 @@ function populateEquipmentFilter(select, rows) {
  */
 function populateModelFilter(select, rows, type = '') {
   select.innerHTML = '<option value=""></option>';
-  const filtered = type ? rows.filter((row) => getEquipmentType(row.path) === type) : rows;
+  const filtered = type
+    ? rows.filter((row) => toClassName(getEquipmentType(row.path)) === type)
+    : rows;
   const models = [...new Set(filtered.map((row) => row.model).filter(Boolean))].sort();
   models.forEach((model) => {
     const option = document.createElement('option');
@@ -284,6 +288,19 @@ async function loadIndex() {
 }
 
 /**
+ * Derive inventory category (new/used/rental) from the page pathname.
+ * @param {string} pathname - window.location.pathname
+ * @returns {string|null}
+ */
+function getCategoryFromPath(pathname) {
+  const segment = pathname.split('/').filter(Boolean)[0] || '';
+  if (segment === 'new') return 'new';
+  if (segment === 'rental') return 'rental';
+  if (segment.startsWith('used')) return 'used';
+  return null;
+}
+
+/**
  * Decorates the PLP widget.
  * @param {HTMLElement} widget - Widget container element
  */
@@ -294,4 +311,30 @@ export default async function decorate(widget) {
 
   const index = await loadIndex();
   buildFilters(widget, index, copy);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const equipment = urlParams.get('equipment') || widget.dataset.equipment;
+  // eslint-disable-next-line no-console
+  console.log('[plp] equipment param:', equipment);
+  if (equipment) {
+    const equipmentSelect = widget.querySelector('#filter-equipment');
+    equipmentSelect.value = equipment;
+    equipmentSelect.dispatchEvent(new Event('change'));
+  }
+
+  const tabs = [...widget.querySelectorAll('button[role="tab"]')];
+  const category = urlParams.get('category') || widget.dataset.category
+    || getCategoryFromPath(window.location.pathname);
+  if (category) {
+    tabs.forEach((tab) => {
+      tab.setAttribute('aria-selected', tab.dataset.copy === category ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
+      tab.setAttribute('aria-selected', 'true');
+    });
+  });
 }

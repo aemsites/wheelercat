@@ -4,45 +4,34 @@
   padding: 0;
 }
 
-/* aside */
-.plp .filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-m);
-}
-
-.plp .filters p {
-  margin: 0;
-  font-size: var(--text-xs);
-}
-
-.plp .filters form {
+/* form */
+.plp form {
   display: flex;
   flex-direction: column;
   gap: var(--space-s);
 }
 
-.plp .filters fieldset {
+.plp fieldset {
   min-width: 0;
   margin: 0;
   border: 0;
   padding: 0;
 }
 
-.plp .filters fieldset ul li + li {
+.plp fieldset ul li + li {
   margin-top: var(--space-xs);
 }
 
-.plp .filters .form-field > label,
-.plp .filters .form-field > legend,
-.plp .filters .form-field > summary {
+.plp .form-field > label,
+.plp .form-field > legend,
+.plp .form-field > summary {
   margin-bottom: 0.2em;
   font-size: var(--text-s);
 }
 
-.plp .filters select,
-.plp .filters input[type="text"],
-.plp .filters input[type="number"] {
+.plp select,
+.plp input[type="text"],
+.plp input[type="number"] {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-s);
@@ -52,31 +41,31 @@
 }
 
 /* ranges */
-.plp .filters input[type="range"] {
+.plp input[type="range"] {
   width: 100%;
   appearance: none;
   cursor: pointer;
 }
 
-.plp .filters input[type="range"]::-webkit-slider-runnable-track {
+.plp input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border: none;
   border-radius: var(--radius-s);
   background: linear-gradient(to right, var(--color-brand) var(--fill, 0%), var(--color-border) var(--fill, 0%));
 }
 
-.plp .filters input[type="range"]::-moz-range-track {
+.plp input[type="range"]::-moz-range-track {
   height: 4px;
   border: none;
   border-radius: var(--radius-s);
   background: linear-gradient(to right, var(--color-brand) var(--fill, 0%), var(--color-border) var(--fill, 0%));
 }
 
-.plp .filters input[type="range"]::-moz-range-progress {
+.plp input[type="range"]::-moz-range-progress {
   background: var(--color-brand);
 }
 
-.plp .filters input[type="range"]::-webkit-slider-thumb {
+.plp input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 24px;
   height: 24px;
@@ -86,7 +75,7 @@
   background-color: var(--color-bg);
 }
 
-.plp .filters input[type="range"]::-moz-range-thumb {
+.plp input[type="range"]::-moz-range-thumb {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -95,7 +84,7 @@
 }
 
 /* checkboxes */
-.plp .filters input[type="checkbox"] {
+.plp input[type="checkbox"] {
   position: absolute;
   margin: 0;
   opacity: 0;
@@ -103,7 +92,7 @@
   height: 100%;
 }
 
-.plp .filters .form-field label {
+.plp .form-field label {
   display: grid;
   grid-template-columns: 1em 1fr;
   align-items: center;
@@ -112,7 +101,7 @@
   cursor: pointer;
 }
 
-.plp .filters .checkbox {
+.plp .checkbox {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
@@ -124,13 +113,13 @@
   transition: border-color 0.2s, background-color 0.2s;
 }
 
-.plp .filters input[type="checkbox"]:checked + .checkbox,
-.plp .filters input[type="checkbox"]:indeterminate + .checkbox {
+.plp input[type="checkbox"]:checked + .checkbox,
+.plp input[type="checkbox"]:indeterminate + .checkbox {
   border-color: var(--color-black);
   background-color: var(--color-brand);
 }
 
-.plp .filters input[type="checkbox"]:checked + .checkbox::after {
+.plp input[type="checkbox"]:checked + .checkbox::after {
   content: '';
   position: absolute;
   inset: 1px;
@@ -141,7 +130,7 @@
   mask-position: center;
 }
 
-.plp .filters input[type="checkbox"]:indeterminate + .checkbox::after {
+.plp input[type="checkbox"]:indeterminate + .checkbox::after {
   content: '–';
   position: absolute;
   top: 50%;
@@ -149,11 +138,48 @@
   transform: translate(-50%, -50%);
 }
 
-.plp .filters label:has(input[type="checkbox"]:disabled) {
+.plp label:has(input[type="checkbox"]:disabled) {
   color: var(--color-subtle);
   cursor: not-allowed;
 }
 
-.plp .filters label:has(input[type="checkbox"]:disabled) .checkbox {
+.plp label:has(input[type="checkbox"]:disabled) .checkbox {
   background-color: var(--color-bg-subtle);
+}
+
+/* tablist */
+
+.plp nav[role="tablist"] ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border);
+}
+
+.plp nav[role="tablist"] button[role="tab"] {
+  width: 100%;
+  padding: 1em 0;
+  border: none;
+  background: none;
+  color: var(--color-subtle);
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s, box-shadow 0.2s;
+}
+
+.plp nav[role="tablist"] button[role="tab"][aria-selected="true"] {
+  color: var(--color-black);
+  box-shadow: inset 0 -2px 0 var(--color-black);
+}
+
+/* filters sidebar */
+.plp .filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.plp .filters p {
+  margin: 0;
+  font-size: var(--text-xs);
 }
