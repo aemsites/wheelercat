@@ -93,7 +93,8 @@ function populateEquipmentFilter(select, rows) {
  * @param {string} [type] - Equipment type to filter by; empty string shows all
  */
 function populateModelFilter(select, rows, type = '') {
-  select.innerHTML = '<option value=""></option>';
+  const allText = select.options[0]?.text || '';
+  select.innerHTML = `<option value="">${allText}</option>`;
   const filtered = type
     ? rows.filter((row) => toClassName(getEquipmentType(row.path)) === type)
     : rows;
@@ -140,6 +141,20 @@ function createCheckbox(labelText, value) {
 }
 
 /**
+ * Count unique normalized dealer locations across index rows.
+ * @param {Array<Object>} rows - Raw index rows
+ * @returns {Map<string, number>} Location string → item count
+ */
+function countLocations(rows) {
+  const counts = new Map();
+  rows.forEach((row) => {
+    const loc = normalizeLocation(row.location);
+    if (loc && /[a-zA-Z]/.test(loc)) counts.set(loc, (counts.get(loc) ?? 0) + 1);
+  });
+  return counts;
+}
+
+/**
  * Populate the dealer fieldset with a checkbox per unique location in the index.
  * @param {HTMLFieldSetElement} fieldset - The dealers fieldset element
  * @param {Array<Object>} rows - Raw index rows
@@ -150,17 +165,14 @@ function populateDealerFilter(fieldset, rows, copy) {
   fieldset.innerHTML = '';
   if (legend) fieldset.appendChild(legend);
 
-  const counts = new Map();
-  rows.forEach((row) => {
-    const loc = normalizeLocation(row.location);
-    if (loc && /[a-zA-Z]/.test(loc)) counts.set(loc, (counts.get(loc) ?? 0) + 1);
-  });
+  const counts = countLocations(rows);
 
   const ul = document.createElement('ul');
   fieldset.appendChild(ul);
 
   const allLabel = createCheckbox(copy.allDealers || 'All Dealers');
   const allInput = allLabel.querySelector('input');
+  allInput.checked = true;
   const allItem = document.createElement('li');
   allItem.appendChild(allLabel);
   ul.appendChild(allItem);
@@ -181,11 +193,20 @@ function populateDealerFilter(fieldset, rows, copy) {
 
   locationInputs.forEach((cb) => {
     cb.addEventListener('change', () => {
-      const checkedCount = locationInputs.filter((i) => i.checked).length;
-      allInput.checked = checkedCount === locationInputs.length;
-      allInput.indeterminate = checkedCount > 0 && checkedCount < locationInputs.length;
+      const enabled = locationInputs.filter((i) => !i.disabled);
+      const checkedCount = enabled.filter((i) => i.checked).length;
+      if (checkedCount === 0) {
+        allInput.checked = true;
+        allInput.indeterminate = false;
+        allInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+      allInput.checked = checkedCount === enabled.length;
+      allInput.indeterminate = checkedCount > 0 && checkedCount < enabled.length;
     });
   });
+
+  allInput.dispatchEvent(new Event('change'));
 }
 
 /**
@@ -205,7 +226,7 @@ function setRangeBounds(input, min, max, defaultValue) {
 }
 
 /**
- * Bind a range input to its sibling description element, updating on change.
+ * Bind a range input to its sibling description element, updating on input.
  * @param {HTMLInputElement} input - The range input element
  * @param {Function} [format] - Optional formatter applied to each displayed value
  */
@@ -222,69 +243,6 @@ function bindRangeDesc(input, format = (v) => v) {
   };
   update();
   input.addEventListener('input', update);
-}
-
-/**
- * Build and wire all sidebar filters from the index.
- * @param {HTMLElement} widget - Widget container element
- * @param {Array<Object>} rows - Raw index rows
- * @param {Object} copy - Widget copy for the current language
- */
-function buildFilters(widget, rows, copy) {
-  const equipmentSelect = widget.querySelector('#filter-equipment');
-  const modelSelect = widget.querySelector('#filter-model');
-  const dealerFieldset = widget.querySelector('#filter-dealer');
-  const priceInput = widget.querySelector('#filter-price');
-  const yearInput = widget.querySelector('#filter-year');
-  const hoursInput = widget.querySelector('#filter-hours');
-
-  populateEquipmentFilter(equipmentSelect, rows);
-  populateModelFilter(modelSelect, rows);
-  populateDealerFilter(dealerFieldset, rows, copy);
-
-  const prices = rows.map((row) => parsePrice(row.price)).filter((n) => n !== null);
-  const years = rows.map((row) => parseInt(row.year, 10)).filter(Number.isFinite);
-  const hours = rows.map((row) => parseInt(row.hours, 10)).filter(Number.isFinite);
-
-  if (prices.length && priceInput) {
-    const [minPrice, maxPrice] = [Math.min(...prices), Math.max(...prices)];
-    setRangeBounds(priceInput, minPrice, maxPrice, maxPrice / 2);
-    bindRangeDesc(priceInput, (v) => `$${Number(v).toLocaleString('en-US')}`);
-  }
-  if (years.length && yearInput) {
-    const [minYear, maxYear] = [Math.min(...years), Math.max(...years)];
-    setRangeBounds(yearInput, minYear, maxYear, maxYear);
-    bindRangeDesc(yearInput);
-  }
-  if (hours.length && hoursInput) {
-    const [minHours, maxHours] = [Math.min(...hours), Math.max(...hours)];
-    setRangeBounds(hoursInput, minHours, maxHours, maxHours / 2);
-    bindRangeDesc(hoursInput);
-  }
-
-  equipmentSelect.addEventListener('change', () => {
-    populateModelFilter(modelSelect, rows, equipmentSelect.value);
-  });
-}
-
-/**
- * Fetch and cache the used-equipment query index.
- * @returns {Promise<Array<Object>>} Raw index rows
- */
-async function loadIndex() {
-  if (window.plpIndex) return window.plpIndex;
-
-  if (!window.plpIndexPromise) {
-    window.plpIndexPromise = (async () => {
-      const base = window.hlx?.codeBasePath || '';
-      const json = await fetchIndexJson(`${base}/used-equipment/query-index.json`);
-      const rows = Array.isArray(json.data) ? json.data : [];
-      window.plpIndex = rows;
-      return rows;
-    })();
-  }
-
-  return window.plpIndexPromise;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -397,6 +355,272 @@ function renderPage(widget, results, page) {
 }
 
 /**
+ * Read the current state of all sidebar filter controls.
+ * @param {HTMLElement} widget - Widget container element
+ * @returns {Object} Current filter state
+ */
+function getFilterState(widget) {
+  const equipmentSelect = widget.querySelector('#filter-equipment');
+  const modelSelect = widget.querySelector('#filter-model');
+  const priceInput = widget.querySelector('#filter-price');
+  const yearInput = widget.querySelector('#filter-year');
+  const hoursInput = widget.querySelector('#filter-hours');
+  const allDealerInput = widget.querySelector('#filter-dealer input:not([value])');
+  const allActive = allDealerInput && allDealerInput.checked && !allDealerInput.indeterminate;
+  const dealerCheckboxes = allActive ? [] : [...widget.querySelectorAll(
+    '#filter-dealer input[type="checkbox"]',
+  )];
+  const checkedDealers = dealerCheckboxes.filter(
+    (cb) => cb.hasAttribute('value') && cb.checked && !cb.disabled,
+  );
+  return {
+    equipment: equipmentSelect?.value || '',
+    model: modelSelect?.value || '',
+    maxPrice: priceInput ? parseFloat(priceInput.value) : Infinity,
+    maxYear: yearInput ? parseFloat(yearInput.value) : Infinity,
+    maxHours: hoursInput ? parseFloat(hoursInput.value) : Infinity,
+    dealers: new Set(checkedDealers.map((cb) => cb.value)),
+  };
+}
+
+/**
+ * Test whether a row passes equipment, model, and range filters.
+ * @param {Object} row - Raw index row
+ * @param {Object} state - Filter state from getFilterState
+ * @returns {boolean}
+ */
+function matchesFilters(row, state) {
+  if (state.equipment && toClassName(getEquipmentType(row.path)) !== state.equipment) return false;
+  if (state.model && row.model !== state.model) return false;
+  const price = parsePrice(row.price);
+  if (Number.isFinite(state.maxPrice) && price !== null && price > state.maxPrice) return false;
+  const year = parseInt(row.year, 10);
+  if (Number.isFinite(state.maxYear) && Number.isFinite(year) && year > state.maxYear) return false;
+  const hours = parseInt(row.hours, 10);
+  if (Number.isFinite(state.maxHours) && Number.isFinite(hours) && hours > state.maxHours) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Compute [min, max] bounds from a value array, expanding when all values are equal.
+ * @param {Array<number>} values - Numeric values to derive bounds from
+ * @param {boolean} [isYear=false] - Year ranges expand max to next calendar year instead of 0
+ * @returns {[number, number]}
+ */
+function computeBounds(values, isYear = false) {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) {
+    if (isYear) return [min, new Date().getFullYear() + 1];
+    return [0, max];
+  }
+  return [min, max];
+}
+
+/**
+ * Recompute range bounds from a new base row set.
+ * @param {HTMLElement} widget - Widget container element
+ * @param {Array<Object>} baseRows - Rows to derive bounds from
+ * @param {boolean} [reset=false] - If true, reset handle to max; otherwise clamp current value
+ */
+function recomputeBounds(widget, baseRows, reset = false) {
+  const priceInput = widget.querySelector('#filter-price');
+  const yearInput = widget.querySelector('#filter-year');
+  const hoursInput = widget.querySelector('#filter-hours');
+
+  const prices = baseRows.map((r) => parsePrice(r.price)).filter((n) => n !== null);
+  const years = baseRows.map((r) => parseInt(r.year, 10)).filter(Number.isFinite);
+  const hours = baseRows.map((r) => parseInt(r.hours, 10)).filter(Number.isFinite);
+
+  const clamp = (input, min, max) => Math.min(max, Math.max(min, parseFloat(input.value)));
+  const val = (input, min, max) => (reset ? max : clamp(input, min, max));
+
+  if (prices.length && priceInput) {
+    const [min, max] = computeBounds(prices);
+    setRangeBounds(priceInput, min, max, val(priceInput, min, max));
+    priceInput.dispatchEvent(new Event('input'));
+  }
+  if (years.length && yearInput) {
+    const [min, max] = computeBounds(years, true);
+    setRangeBounds(yearInput, min, max, val(yearInput, min, max));
+    yearInput.dispatchEvent(new Event('input'));
+  }
+  if (hours.length && hoursInput) {
+    const [min, max] = computeBounds(hours);
+    setRangeBounds(hoursInput, min, max, val(hoursInput, min, max));
+    hoursInput.dispatchEvent(new Event('input'));
+  }
+}
+
+/**
+ * Update dealer checkbox counts and disabled states in place from a row set.
+ * @param {HTMLElement} widget - Widget container element
+ * @param {Array<Object>} rows - Rows to count dealers from
+ */
+function recomputeDealers(widget, rows) {
+  const fieldset = widget.querySelector('#filter-dealer');
+  if (!fieldset) return;
+
+  const counts = countLocations(rows);
+
+  fieldset.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+    if (!input.hasAttribute('value')) return;
+    const count = counts.get(input.value) ?? 0;
+    input.disabled = count === 0;
+    if (count === 0) input.checked = false;
+    const li = input.closest('li');
+    if (li) li.style.order = count === 0 ? '1' : '';
+    const label = input.closest('label');
+    if (label) label.lastChild.textContent = `${input.value} (${count})`;
+  });
+
+  const allInput = fieldset.querySelector('input:not([value])');
+  if (allInput) {
+    const locationInputs = [...fieldset.querySelectorAll('input[type="checkbox"]')]
+      .filter((i) => i.hasAttribute('value'));
+    const enabled = locationInputs.filter((i) => !i.disabled);
+    const checkedEnabled = enabled.filter((i) => i.checked).length;
+    allInput.checked = checkedEnabled === 0 || checkedEnabled === enabled.length;
+    allInput.indeterminate = checkedEnabled > 0 && checkedEnabled < enabled.length;
+  }
+}
+
+/**
+ * Serialize active filter state to URL query params.
+ * @param {HTMLElement} widget - Widget container element
+ */
+function updateURL(widget) {
+  const state = getFilterState(widget);
+  const priceInput = widget.querySelector('#filter-price');
+  const yearInput = widget.querySelector('#filter-year');
+  const equipmentSelect = widget.querySelector('#filter-equipment');
+
+  const params = new URLSearchParams();
+  if (equipmentSelect?.value && !equipmentSelect.hasAttribute('data-readonly')) {
+    params.set('equipment', equipmentSelect.value);
+  }
+  if (state.model) params.set('model', state.model);
+  if (priceInput && parseFloat(priceInput.value) < parseFloat(priceInput.max)) {
+    params.set('price', priceInput.value);
+  }
+  if (yearInput && parseFloat(yearInput.value) < parseFloat(yearInput.max)) {
+    params.set('year', yearInput.value);
+  }
+  state.dealers.forEach((dealer) => params.append('dealer', dealer));
+
+  const newURL = params.toString()
+    ? `${window.location.pathname}?${params.toString()}`
+    : window.location.pathname;
+  window.history.pushState({}, '', newURL);
+}
+
+/**
+ * Apply all active filters, update dynamic UI, and rerender the first page.
+ * @param {HTMLElement} widget - Widget container element
+ * @param {Array<Object>} rows - Full index rows
+ * @param {boolean} [pushState=false] - If true, push filter state to URL
+ */
+function applyFilters(widget, rows, pushState = false) {
+  const state = getFilterState(widget);
+  // Pre-dealer pass so recomputeDealers sees counts before the dealer filter narrows results.
+  const preDealer = rows.filter((row) => matchesFilters(row, state));
+  recomputeDealers(widget, preDealer);
+  const filtered = state.dealers.size > 0
+    ? preDealer.filter((row) => state.dealers.has(normalizeLocation(row.location)))
+    : preDealer;
+  widget.plpResults = filtered;
+  renderPage(widget, filtered, 1);
+  if (pushState && !widget.plpHydrating) updateURL(widget);
+}
+
+/**
+ * Build and wire all sidebar filters from the index.
+ * @param {HTMLElement} widget - Widget container element
+ * @param {Array<Object>} rows - Raw index rows
+ * @param {Object} copy - Widget copy for the current language
+ */
+function buildFilters(widget, rows, copy) {
+  const equipmentSelect = widget.querySelector('#filter-equipment');
+  const modelSelect = widget.querySelector('#filter-model');
+  const dealerFieldset = widget.querySelector('#filter-dealer');
+  const priceInput = widget.querySelector('#filter-price');
+  const yearInput = widget.querySelector('#filter-year');
+  const hoursInput = widget.querySelector('#filter-hours');
+
+  populateEquipmentFilter(equipmentSelect, rows);
+  populateModelFilter(modelSelect, rows);
+  populateDealerFilter(dealerFieldset, rows, copy);
+
+  const prices = rows.map((row) => parsePrice(row.price)).filter((n) => n !== null);
+  const years = rows.map((row) => parseInt(row.year, 10)).filter(Number.isFinite);
+  const hours = rows.map((row) => parseInt(row.hours, 10)).filter(Number.isFinite);
+
+  if (prices.length && priceInput) {
+    const [minPrice, maxPrice] = computeBounds(prices);
+    setRangeBounds(priceInput, minPrice, maxPrice, maxPrice);
+    bindRangeDesc(priceInput, (v) => `$${Number(v).toLocaleString('en-US')}`);
+  }
+  if (years.length && yearInput) {
+    const [minYear, maxYear] = computeBounds(years, true);
+    setRangeBounds(yearInput, minYear, maxYear, maxYear);
+    bindRangeDesc(yearInput);
+  }
+  if (hours.length && hoursInput) {
+    const [minHours, maxHours] = computeBounds(hours);
+    setRangeBounds(hoursInput, minHours, maxHours, maxHours);
+    bindRangeDesc(hoursInput);
+  }
+
+  equipmentSelect.addEventListener('change', () => {
+    populateModelFilter(modelSelect, rows, equipmentSelect.value);
+    const base = equipmentSelect.value
+      ? rows.filter((r) => toClassName(getEquipmentType(r.path)) === equipmentSelect.value)
+      : rows;
+    recomputeBounds(widget, base, true);
+    applyFilters(widget, rows, true);
+  });
+
+  modelSelect.addEventListener('change', () => {
+    const base = rows.filter((r) => {
+      const type = toClassName(getEquipmentType(r.path));
+      if (equipmentSelect.value && type !== equipmentSelect.value) return false;
+      if (modelSelect.value && r.model !== modelSelect.value) return false;
+      return true;
+    });
+    recomputeBounds(widget, base);
+    applyFilters(widget, rows, true);
+  });
+
+  if (priceInput) priceInput.addEventListener('change', () => applyFilters(widget, rows, true));
+  if (yearInput) yearInput.addEventListener('change', () => applyFilters(widget, rows, true));
+  if (hoursInput) hoursInput.addEventListener('change', () => applyFilters(widget, rows, true));
+
+  dealerFieldset.addEventListener('change', () => applyFilters(widget, rows, true));
+}
+
+/**
+ * Fetch and cache the used-equipment query index.
+ * @returns {Promise<Array<Object>>} Raw index rows
+ */
+async function loadIndex() {
+  if (window.plpIndex) return window.plpIndex;
+
+  if (!window.plpIndexPromise) {
+    window.plpIndexPromise = (async () => {
+      const base = window.hlx?.codeBasePath || '';
+      const json = await fetchIndexJson(`${base}/used-equipment/query-index.json`);
+      const rows = Array.isArray(json.data) ? json.data : [];
+      window.plpIndex = rows;
+      return rows;
+    })();
+  }
+
+  return window.plpIndexPromise;
+}
+
+/**
  * Derive inventory category (new/used/rental) from the page pathname.
  * @param {string} pathname - window.location.pathname
  * @returns {string|null}
@@ -419,17 +643,67 @@ export default async function decorate(widget) {
   hydrateCopy(widget, copy);
 
   const index = await loadIndex();
+  widget.plpResults = index;
   buildFilters(widget, index, copy);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const equipment = urlParams.get('equipment') || widget.dataset.equipment;
-  // eslint-disable-next-line no-console
-  console.log('[plp] equipment param:', equipment);
+  widget.plpHydrating = true;
+
+  const pathSegments = window.location.pathname.split('/').filter(Boolean);
+  const pathEquipment = pathSegments[0] === 'used-equipment' ? pathSegments[1] : null;
+  const equipment = pathEquipment || urlParams.get('equipment') || widget.dataset.equipment;
   if (equipment) {
     const equipmentSelect = widget.querySelector('#filter-equipment');
     equipmentSelect.value = equipment;
+    if (pathEquipment && equipmentSelect.value) {
+      equipmentSelect.dataset.readonly = '';
+      equipmentSelect.addEventListener('keydown', (e) => e.preventDefault());
+    }
     equipmentSelect.dispatchEvent(new Event('change'));
   }
+
+  const modelParam = urlParams.get('model') || widget.dataset.model;
+  if (modelParam) {
+    const modelSelect = widget.querySelector('#filter-model');
+    modelSelect.value = modelParam;
+    modelSelect.dispatchEvent(new Event('change'));
+  }
+
+  const priceInput = widget.querySelector('#filter-price');
+  const priceParam = urlParams.get('price') || widget.dataset.price;
+  if (priceParam && priceInput) {
+    priceInput.value = priceParam;
+    priceInput.dispatchEvent(new Event('input'));
+    priceInput.dispatchEvent(new Event('change'));
+  }
+
+  const yearInput = widget.querySelector('#filter-year');
+  const yearParam = urlParams.get('year') || widget.dataset.year;
+  if (yearParam && yearInput) {
+    yearInput.value = yearParam;
+    yearInput.dispatchEvent(new Event('input'));
+    yearInput.dispatchEvent(new Event('change'));
+  }
+
+  let dealerParams = urlParams.getAll('dealer');
+  if (!dealerParams.length && widget.dataset.dealer) dealerParams = [widget.dataset.dealer];
+  if (dealerParams.length > 0) {
+    const allDealerInput = widget.querySelector('#filter-dealer input:not([value])');
+    if (allDealerInput) {
+      allDealerInput.checked = false;
+      allDealerInput.dispatchEvent(new Event('change'));
+      const checkedInputs = dealerParams.map((dealer) => {
+        const selector = `#filter-dealer input[value="${CSS.escape(dealer)}"]`;
+        return widget.querySelector(selector);
+      }).filter(Boolean);
+      checkedInputs.forEach((input) => { input.checked = true; });
+      if (checkedInputs.length > 0) {
+        const lastChecked = checkedInputs[checkedInputs.length - 1];
+        lastChecked.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  }
+  widget.plpHydrating = false;
 
   const tabs = [...widget.querySelectorAll('button[role="tab"]')];
   const category = urlParams.get('category') || widget.dataset.category
@@ -441,20 +715,25 @@ export default async function decorate(widget) {
   }
 
   tabs.forEach((tab) => {
+    tab.disabled = tab.getAttribute('aria-selected') !== 'true';
     tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
+      tabs.forEach((t) => {
+        t.setAttribute('aria-selected', 'false');
+        t.disabled = true;
+      });
       tab.setAttribute('aria-selected', 'true');
+      tab.disabled = false;
     });
   });
 
   let currentPage = 1;
-  renderPage(widget, index, currentPage);
+  renderPage(widget, widget.plpResults, currentPage);
 
   widget.querySelector('nav.pagination').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-page]');
     if (!btn || btn.disabled) return;
     currentPage = parseInt(btn.dataset.page, 10);
-    renderPage(widget, index, currentPage);
+    renderPage(widget, widget.plpResults, currentPage);
     widget.querySelector('.results').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }

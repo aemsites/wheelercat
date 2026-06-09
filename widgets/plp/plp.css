@@ -32,6 +32,12 @@
   font-size: var(--text-s);
 }
 
+.plp select[data-readonly] {
+  pointer-events: none;
+  appearance: none;
+  border-color: transparent;
+}
+
 .plp select,
 .plp input[type="text"],
 .plp input[type="number"] {
@@ -195,6 +201,10 @@
 .plp nav[role="tablist"] button[role="tab"][aria-selected="true"] {
   color: var(--color-black);
   box-shadow: inset 0 -2px 0 var(--color-black);
+}
+
+.plp nav[role="tablist"] button[role="tab"]:disabled {
+  cursor: not-allowed;
 }
 
 /* pagination */
