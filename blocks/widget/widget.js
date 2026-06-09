@@ -2,26 +2,27 @@ import { loadCSS } from '../../scripts/aem.js';
 
 /**
  * Constructs URL for widget resources.
- * @param {string} widget - Widget name
+ * @param {string} path - Subdirectory path under /widgets/
+ * @param {string} name - Widget filename without extension
  * @param {string} extension - File extension
  * @returns {string} Complete URL path to widget resource
  */
-function writeUrl(widgetPath, widgetName, extension) {
-  return `${window.hlx.codeBasePath}/widgets/${widgetPath}/${widgetName}.${extension}`;
+function writeUrl(path, name, extension) {
+  return `${window.hlx.codeBasePath}/widgets/${path}/${name}.${extension}`;
 }
 
 /**
  * Decorates widget element by loading HTML, CSS, and JS resources.
  * @param {HTMLElement} widget - Widget container element
  * @returns {Promise<void>} Promise that resolves when widget decoration is complete
- * @throws {Error} Logs errors to console if widget loading fails
+ * @throws {Error} Warns to console if widget loading fails
  */
 export default async function decorate(widget) {
   const source = widget.querySelector('a[href]');
   const { pathname, searchParams } = new URL(source.href);
   const pathSegments = pathname.split('/').filter((p) => p);
-  const widgetPath = pathSegments[1]; // extract widget name (after '/widgets/')
-  const widgetName = pathSegments[2].split('.')[0]; // extract widget name (after '/widgets/')
+  const widgetPath = pathSegments[1];
+  const widgetName = pathSegments[2].split('.')[0];
 
   try {
     // load and populate html
@@ -55,6 +56,7 @@ export default async function decorate(widget) {
       widget.dataset[key] = value;
     });
   } catch (error) {
-    // fail gracefully
+    // eslint-disable-next-line no-console
+    console.warn('widget failed to load:', error);
   }
 }
