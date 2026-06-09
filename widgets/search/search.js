@@ -1,3 +1,5 @@
+import { createOptimizedPicture, decorateIcons } from '../../scripts/aem.js';
+
 /**
  * Load widget copy from the widget's local JSON (same name as the script).
  * @param {string} lang - Language key (e.g. en)
@@ -7,10 +9,15 @@ async function loadWidgetCopy(lang) {
   const scriptPath = new URL(import.meta.url).pathname;
   const jsonPath = scriptPath.replace(/\.js$/, '.json');
   const url = `${window.hlx?.codeBasePath || ''}${jsonPath}`;
-  const resp = await fetch(url);
-  const data = await resp.json();
-  const key = data[lang] ? lang : 'en';
-  return data[key] || {};
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return {};
+    const data = await resp.json();
+    const key = data[lang] ? lang : 'en';
+    return data[key] || {};
+  } catch (_) {
+    return {};
+  }
 }
 
 /**
@@ -26,11 +33,25 @@ function getCategoryFromPath(path) {
 }
 
 /**
- * Normalize a single item from the site query index.
- * @param {Object} row - Raw row from the site query-index.json
+ * Derive a human-readable equipment type label from the second path segment.
+ * @param {string} path - Content path (e.g. /used-equipment/track-excavators/item-slug)
+ * @returns {string} Title-cased type string, or empty string if not derivable
+ */
+function getTypeFromPath(path) {
+  if (!path) return '';
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length < 2) return '';
+  return segments[1].split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Normalize a single item from either query index.
+ * @param {Object} row - Raw row from query-index.json or used-equipment/query-index.json
  * @returns {Object} Normalized search item
  */
-function normalizeQueryItem(row) {
+function normalizeItem(row) {
   const path = row.path || row.url || '';
   return {
     path,
@@ -38,26 +59,12 @@ function normalizeQueryItem(row) {
     description: (row.description || '').trim(),
     image: row.image || '',
     category: getCategoryFromPath(path),
-  };
-}
-
-/**
- * Normalize a single item from the used equipment query index.
- * @param {Object} row - Raw row from used-equipment/query-index.json
- * @returns {Object} Normalized search item
- */
-function normalizeUsedEquipmentItem(row) {
-  const path = row.path || row.url || '';
-  return {
-    path,
-    title: (row.title || '').trim(),
-    description: (row.description || '').trim(),
-    image: row.image || '',
-    category: 'used',
     model: (row.model || '').trim(),
     location: (row.location || '').trim(),
     hours: (row.hours || '').trim(),
     price: (row.price || '').trim(),
+    serialNumber: (row.serialNumber || row['serial-number'] || '').trim(),
+    year: (row.year || '').trim(),
   };
 }
 
@@ -80,11 +87,11 @@ async function fetchIndexJson(url) {
 function mergeSearchIndexes(siteRows, usedRows) {
   const byPath = new Map();
   siteRows.forEach((row) => {
-    const item = normalizeQueryItem(row);
+    const item = normalizeItem(row);
     if (item.path) byPath.set(item.path, item);
   });
   usedRows.forEach((row) => {
-    const item = normalizeUsedEquipmentItem(row);
+    const item = normalizeItem(row);
     if (item.path) byPath.set(item.path, item);
   });
   return [...byPath.values()];
@@ -265,71 +272,12 @@ function sortByRelevance(results, searchTerm) {
 }
 
 /**
- * Append image optimization query params to a URL.
- * @param {string} url - Image URL (path or full URL)
- * @returns {string}
- */
-function addImageParams(url) {
-  if (!url) return '';
-  const sep = url.includes('?') ? '&' : '?';
-  const IMAGE_QUERY_PARAMS = 'width=750&format=webply&optimize=medium';
-  return `${url}${sep}${IMAGE_QUERY_PARAMS}`;
-}
-
-/**
- * Get relative image path from URL.
- * @param {string} imageUrl - Absolute or relative URL
- * @returns {string}
- */
-function getRelativeImagePath(imageUrl) {
-  if (!imageUrl) return '';
-  try {
-    const url = new URL(imageUrl, window.location.origin);
-    return url.pathname + url.search;
-  } catch {
-    return imageUrl;
-  }
-}
-
-/**
- * Whether the URL is usable as a result card image.
- * @param {string} url - Raw URL string from the search index
- * @returns {boolean}
- */
-function isUsableImageUrl(url) {
-  if (!url || typeof url !== 'string' || !url.trim()) return false;
-  const s = url.trim().toLowerCase();
-  if (s.startsWith('data:')) return false;
-  try {
-    const parsed = new URL(url, window.location.origin);
-    return Boolean(parsed);
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Get image src for a result card. Query index: only https:// URLs.
+ * Get image src for a search item. Returns empty string if no usable OG image.
  * @param {Object} item - Normalized search item
  * @returns {string}
  */
-function getResultImageSrc(item) {
-  if (!item?.image || !isUsableImageUrl(item.image)) return '';
-  if (!item.image.trim().startsWith('https://')) return '';
-  return addImageParams(getRelativeImagePath(item.image));
-}
-
-/**
- * Get a compact image src for autocomplete items.
- * @param {Object} item - Normalized search item
- * @returns {string}
- */
-function getAutocompleteImageSrc(item) {
-  if (!hasOgImage(item)) return '';
-  const path = getRelativeImagePath(item.image);
-  const sep = path.includes('?') ? '&' : '?';
-  const AUTOCOMPLETE_IMAGE_PARAMS = 'width=120&height=90&format=webply&optimize=medium';
-  return `${path}${sep}${AUTOCOMPLETE_IMAGE_PARAMS}`;
+function getItemImageSrc(item) {
+  return hasOgImage(item) ? item.image : '';
 }
 
 /* highlight */
@@ -363,7 +311,7 @@ function escapeHTML(str) {
  * Highlight matching substrings in text for multiple search terms.
  * @param {string} text - Full text
  * @param {string[]} terms - Terms to highlight
- * @returns {string} HTML with highlight spans
+ * @returns {string} HTML with `mark` elements wrapping matched substrings
  */
 function highlightTerms(text, terms) {
   if (!text || !terms?.length) return text;
@@ -403,7 +351,7 @@ function highlightTerms(text, terms) {
   let pos = 0;
   merged.forEach(([start, end]) => {
     result += escapeHTML(text.substring(pos, start));
-    result += `<span class="highlight">${escapeHTML(text.substring(start, end))}</span>`;
+    result += `<mark>${escapeHTML(text.substring(start, end))}</mark>`;
     pos = end;
   });
   result += escapeHTML(text.substring(pos));
@@ -426,47 +374,6 @@ function formatHours(value, copy) {
 }
 
 /**
- * Create a spec row for used equipment cards.
- * @param {string} label - Display label (e.g. "Model")
- * @param {string} value - Spec value from the search item
- * @param {string[]} searchTerms - Active search terms for highlight
- * @param {string} className - CSS class(es) for the wrapper div
- * @returns {HTMLElement|null}
- */
-function createSpec(label, value, searchTerms, className = 'spec') {
-  if (!value) return null;
-  const wrap = document.createElement('div');
-  wrap.className = className;
-  const dt = document.createElement('dt');
-  dt.textContent = label;
-  const dd = document.createElement('dd');
-  dd.innerHTML = searchTerms?.length ? highlightTerms(value, searchTerms) : escapeHTML(value);
-  wrap.append(dt, dd);
-  return wrap;
-}
-
-/**
- * Create used equipment specs block.
- * @param {Object} item - Normalized used equipment search item
- * @param {Object} copy - Widget copy for the current language
- * @returns {HTMLElement|null}
- */
-function createUsedEquipmentSpecs(item, copy) {
-  const specs = [
-    createSpec(copy.model || 'Model', item.model, item.searchTerms),
-    createSpec(copy.location || 'Location', item.location, item.searchTerms),
-    createSpec(copy.hours || 'Hours', formatHours(item.hours, copy), item.searchTerms),
-    createSpec(copy.price || 'Price', item.price, item.searchTerms, 'spec price'),
-  ].filter(Boolean);
-
-  if (!specs.length) return null;
-
-  const dl = document.createElement('dl');
-  specs.forEach((spec) => dl.appendChild(spec));
-  return dl;
-}
-
-/**
  * Create a category badge element.
  * @param {Object} item - Normalized search item with a category field
  * @param {Object} copy - Widget copy for the current language
@@ -476,71 +383,166 @@ function createCategoryBadge(item, copy) {
   if (!item.category) return null;
   const badge = document.createElement('span');
   badge.className = `badge ${item.category}`;
-  badge.textContent = item.category === 'used'
-    ? (copy.badgeUsedEquipment || 'Used Equipment')
-    : (copy.badgeNewEquipment || 'New Equipment');
+  if (item.category === 'used') {
+    const icon = document.createElement('span');
+    icon.className = 'icon icon-certified-used';
+    badge.appendChild(icon);
+    decorateIcons(badge);
+  } else {
+    badge.textContent = copy.badgeNewEquipment || 'New Equipment';
+  }
   return badge;
 }
 
 /**
- * Create a result card DOM element.
+ * Build a media-wrapper div with an optimized picture or a placeholder.
+ * @param {string} src - Pre-computed image src (empty string triggers placeholder)
+ * @param {number} [width] - Pixel width hint passed to createOptimizedPicture
+ * @returns {HTMLElement}
+ */
+function createMediaWrapper(src, width = 750) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'media-wrapper';
+  if (src) {
+    wrapper.appendChild(createOptimizedPicture(src, '', false, [{ width }]));
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'placeholder';
+    wrapper.appendChild(placeholder);
+  }
+  return wrapper;
+}
+
+/**
+ * Build the media wrapper (image with overlaid year and category badges) for a result.
+ * @param {Object} item - Normalized search item
+ * @param {Object} copy - Widget copy for the current language
+ * @returns {HTMLElement}
+ */
+function createResultMedia(item, copy) {
+  const wrapper = createMediaWrapper(getItemImageSrc(item));
+
+  if (item.category === 'used' && item.year) {
+    const yearBadge = document.createElement('span');
+    yearBadge.className = 'badge year';
+    yearBadge.textContent = item.year;
+    wrapper.appendChild(yearBadge);
+  }
+
+  const categoryBadge = createCategoryBadge(item, copy);
+  if (categoryBadge) wrapper.appendChild(categoryBadge);
+
+  return wrapper;
+}
+
+/**
+ * Create a result DOM element for the search results list.
  * @param {Object} item - Normalized search item
  * @param {Object} copy - Widget copy
  * @returns {HTMLElement}
  */
 function createResultCard(item, copy = {}) {
   const li = document.createElement('li');
-  li.className = 'card';
+  li.className = 'result';
 
-  const link = document.createElement('a');
-  link.href = item.path || '#';
+  li.appendChild(createResultMedia(item, copy));
 
-  const media = document.createElement('div');
-  media.className = 'media';
+  const body = document.createElement('div');
+  body.className = 'body-wrapper';
 
-  const imageSrc = getResultImageSrc(item);
-  if (imageSrc && !imageSrc.includes('default-meta-image')) {
-    const imageEl = document.createElement('img');
-    imageEl.src = imageSrc;
-    imageEl.alt = '';
-    imageEl.loading = 'lazy';
-    media.appendChild(imageEl);
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'placeholder';
-    media.appendChild(placeholder);
+  const typeLabel = item.category ? getTypeFromPath(item.path) : '';
+  if (typeLabel) {
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow type';
+    eyebrow.textContent = typeLabel;
+    body.appendChild(eyebrow);
   }
 
-  const badge = createCategoryBadge(item, copy);
-  if (badge) media.appendChild(badge);
-
-  const content = document.createElement('div');
-  content.className = 'content';
-
-  const title = document.createElement('h3');
   const titleText = item.title || '';
-  title.innerHTML = item.searchTerms?.length
-    ? highlightTerms(titleText, item.searchTerms)
-    : escapeHTML(titleText);
-  content.appendChild(title);
-
-  if (item.category === 'used') {
-    const specs = createUsedEquipmentSpecs(item, copy);
-    if (specs) content.appendChild(specs);
+  if (titleText) {
+    const heading = document.createElement('h2');
+    if (typeLabel) heading.dataset.eyebrow = typeLabel;
+    heading.innerHTML = item.searchTerms && item.searchTerms.length
+      ? highlightTerms(titleText, item.searchTerms)
+      : escapeHTML(titleText);
+    body.appendChild(heading);
   }
 
-  const descText = item.description || '';
-  if (descText) {
-    const description = document.createElement('p');
-    description.className = 'description';
-    description.innerHTML = item.searchTerms?.length
-      ? highlightTerms(descText, item.searchTerms)
-      : escapeHTML(descText);
-    content.appendChild(description);
+  if (item.category) {
+    const formattedHours = item.category === 'used' ? formatHours(item.hours, copy) : '';
+    if (item.serialNumber || formattedHours) {
+      const metaList = document.createElement('ul');
+      metaList.className = 'meta';
+      if (item.serialNumber) {
+        const snItem = document.createElement('li');
+        snItem.textContent = `${copy.serialNumber || 'S/N'}: ${item.serialNumber}`;
+        metaList.appendChild(snItem);
+      }
+      if (formattedHours) {
+        const hoursItem = document.createElement('li');
+        hoursItem.textContent = formattedHours;
+        metaList.appendChild(hoursItem);
+      }
+      body.appendChild(metaList);
+    }
   }
 
-  link.append(media, content);
-  li.appendChild(link);
+  if (item.category === 'new' || !item.category) {
+    const descText = (item.description || '').trim();
+    if (descText) {
+      const desc = document.createElement('p');
+      desc.className = 'desc';
+      const excerpt = descText.length > 120 ? `${descText.slice(0, 120)}…` : descText;
+      desc.innerHTML = item.searchTerms && item.searchTerms.length
+        ? highlightTerms(excerpt, item.searchTerms)
+        : escapeHTML(excerpt);
+      body.appendChild(desc);
+    }
+  }
+
+  li.appendChild(body);
+
+  const buttonLabel = item.category
+    ? (copy.viewDetails || 'View Details')
+    : (copy.learnMore || 'Learn More');
+  const footer = document.createElement('footer');
+
+  if (item.category && item.price) {
+    const priceMeta = document.createElement('p');
+    priceMeta.className = 'meta';
+    priceMeta.textContent = copy.price || 'Price';
+    footer.appendChild(priceMeta);
+
+    const priceEl = document.createElement('p');
+    priceEl.className = 'price';
+    priceEl.innerHTML = item.searchTerms && item.searchTerms.length
+      ? highlightTerms(item.price, item.searchTerms)
+      : escapeHTML(item.price);
+    footer.appendChild(priceEl);
+
+    const hr = document.createElement('hr');
+    footer.appendChild(hr);
+  }
+
+  if (item.category && item.location) {
+    const locationEl = document.createElement('p');
+    locationEl.className = 'meta location';
+    locationEl.innerHTML = item.searchTerms && item.searchTerms.length
+      ? highlightTerms(item.location, item.searchTerms)
+      : escapeHTML(item.location);
+    footer.appendChild(locationEl);
+  }
+
+  const buttonWrapper = document.createElement('p');
+  buttonWrapper.className = 'button-wrapper';
+  const button = document.createElement('a');
+  button.href = item.path || '#';
+  button.className = 'button primary';
+  button.textContent = buttonLabel;
+  button.setAttribute('aria-label', `${buttonLabel} – ${titleText}`);
+  buttonWrapper.appendChild(button);
+  footer.appendChild(buttonWrapper);
+  li.appendChild(footer);
   return li;
 }
 
@@ -588,116 +590,63 @@ async function searchItems(searchTerm, limit) {
 }
 
 /**
- * Create a compact autocomplete result row.
+ * Create a compact suggestions result row.
  * @param {Object} item - Normalized search item
  * @param {Object} copy - Widget copy for the current language
  * @returns {HTMLElement}
  */
-function createAutocompleteItem(item, copy) {
+function createSuggestionsItem(item, copy) {
   const li = document.createElement('li');
-  li.className = 'item';
-  li.setAttribute('role', 'option');
+  li.className = 'result';
+
+  li.appendChild(createMediaWrapper(getItemImageSrc(item), 120));
+
+  const bodyWrapper = document.createElement('div');
+  bodyWrapper.className = 'body-wrapper';
+
+  const titleEl = document.createElement('p');
+  titleEl.className = 'title';
 
   const link = document.createElement('a');
   link.href = item.path || '#';
   link.className = 'link';
-
-  const imageSrc = getAutocompleteImageSrc(item);
-  if (imageSrc) {
-    const img = document.createElement('img');
-    img.src = imageSrc;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.className = 'thumb';
-    link.appendChild(img);
-  }
-
-  const content = document.createElement('div');
-  content.className = 'content';
-
-  const titleRow = document.createElement('div');
-  titleRow.className = 'row';
-
-  const title = document.createElement('span');
-  title.className = 'title';
   const titleText = item.title || '';
-  title.innerHTML = item.searchTerms?.length
+  link.innerHTML = item.searchTerms?.length
     ? highlightTerms(titleText, item.searchTerms)
     : escapeHTML(titleText);
-  titleRow.appendChild(title);
+  titleEl.appendChild(link);
 
   const badge = createCategoryBadge(item, copy);
-  if (badge) {
-    titleRow.appendChild(badge);
-  }
-  content.appendChild(titleRow);
+  if (badge) titleEl.appendChild(badge);
+  bodyWrapper.appendChild(titleEl);
 
   if (item.category === 'used') {
-    const metaParts = [
-      item.model,
-      item.location,
-      item.price,
-    ].filter(Boolean);
+    const metaParts = [item.model, item.location, item.price].filter(Boolean);
     if (metaParts.length) {
-      const meta = document.createElement('span');
+      const meta = document.createElement('p');
       meta.className = 'meta';
       meta.textContent = metaParts.join(' · ');
-      content.appendChild(meta);
+      bodyWrapper.appendChild(meta);
     }
   } else {
     const descText = (item.description || '').trim();
     if (descText) {
-      const meta = document.createElement('span');
+      const meta = document.createElement('p');
       meta.className = 'meta';
       const excerpt = descText.length > 80 ? `${descText.slice(0, 80)}…` : descText;
       meta.innerHTML = item.searchTerms?.length
         ? highlightTerms(excerpt, item.searchTerms)
         : escapeHTML(excerpt);
-      content.appendChild(meta);
+      bodyWrapper.appendChild(meta);
     }
   }
 
-  link.appendChild(content);
-  li.appendChild(link);
+  li.appendChild(bodyWrapper);
   return li;
 }
 
 /**
- * Position the autocomplete overlay relative to its anchor.
- * @param {HTMLElement} overlay - The autocomplete overlay element
- * @param {HTMLElement} anchor - The element the overlay is anchored to
- */
-function positionAutocompleteOverlay(overlay, anchor) {
-  const DESKTOP_MEDIA = '(width >= 1200px)';
-
-  const rect = anchor.getBoundingClientRect();
-  const isDesktop = window.matchMedia(DESKTOP_MEDIA).matches;
-
-  if (isDesktop) {
-    overlay.style.position = 'absolute';
-    overlay.style.top = '100%';
-    overlay.style.right = '0';
-    overlay.style.left = 'auto';
-    overlay.style.bottom = 'auto';
-    overlay.style.width = `${rect.width * 2}px`;
-    overlay.style.maxWidth = `${rect.width * 2}px`;
-    overlay.style.minWidth = `${rect.width}px`;
-    overlay.style.marginTop = '4px';
-  } else {
-    overlay.style.position = 'fixed';
-    overlay.style.top = `${rect.bottom}px`;
-    overlay.style.left = '0';
-    overlay.style.right = '0';
-    overlay.style.bottom = '0';
-    overlay.style.width = 'auto';
-    overlay.style.maxWidth = 'none';
-    overlay.style.minWidth = '0';
-    overlay.style.marginTop = '0';
-  }
-}
-
-/**
- * Attach autocomplete search to an input, loading on first interaction.
+ * Attach suggestions search to an input, loading on first interaction.
  * @param {HTMLInputElement} input - Search input element
  * @param {Object} [options]
  * @param {HTMLElement} [options.anchor] - Element to align overlay with (defaults to input parent)
@@ -705,11 +654,11 @@ function positionAutocompleteOverlay(overlay, anchor) {
  * @param {number} [options.maxResults=8] - Max suggestions shown
  * @returns {Promise<{ destroy: () => void }>}
  */
-export async function attachSearchAutocomplete(input, opts = {}) {
-  if (input.dataset.searchAutocomplete === 'true') {
+export async function attachSearchSuggestions(input, opts = {}) {
+  if (input.dataset.searchSuggestions === 'true') {
     return { destroy: () => {} };
   }
-  input.dataset.searchAutocomplete = 'true';
+  input.dataset.searchSuggestions = true;
 
   const {
     anchor = input.closest('form') || input.parentElement,
@@ -722,28 +671,23 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   }
 
   const { loadCSS } = await import('../../scripts/aem.js');
-  await loadCSS(`${window.hlx?.codeBasePath || ''}/widgets/search-results/search-results.css`);
+  await loadCSS(`${window.hlx?.codeBasePath || ''}/widgets/search/suggestions.css`);
 
   const lang = (document.documentElement.lang || 'en').split('-')[0];
   const copy = await loadWidgetCopy(lang);
 
-  anchor.style.position = 'relative';
-
   const overlay = document.createElement('div');
-  overlay.id = `search-autocomplete-${Date.now()}`;
-  overlay.className = 'search-autocomplete';
+  overlay.id = 'search-suggestions';
+  overlay.className = 'search suggestions';
   overlay.hidden = true;
-  overlay.setAttribute('role', 'listbox');
-  overlay.setAttribute('aria-label', copy.autocompleteLabel || 'Search suggestions');
 
   const list = document.createElement('ul');
   list.className = 'results';
   overlay.appendChild(list);
 
-  const footer = document.createElement('div');
-  footer.className = 'footer';
+  const footer = document.createElement('footer');
   const viewAll = document.createElement('a');
-  viewAll.className = 'view-all';
+  viewAll.classList.add('button', 'primary');
   viewAll.textContent = copy.viewAllResults || 'View all results';
   footer.appendChild(viewAll);
   overlay.appendChild(footer);
@@ -751,44 +695,11 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   anchor.appendChild(overlay);
 
   let debounceTimer;
-  let activeIndex = -1;
 
-  const getOptions = () => [
-    ...list.querySelectorAll('.item[role="option"]'),
+  const getFocusableLinks = () => [
+    ...list.querySelectorAll('.link'),
     ...(viewAll.href ? [viewAll] : []),
   ];
-
-  const clearActiveOption = () => {
-    getOptions().forEach((option) => {
-      option.classList.remove('active');
-      option.setAttribute('aria-selected', 'false');
-    });
-    input.removeAttribute('aria-activedescendant');
-  };
-
-  const setActiveIndex = (index) => {
-    const options = getOptions();
-    if (!options.length) {
-      activeIndex = -1;
-      clearActiveOption();
-      return;
-    }
-
-    if (index < -1) activeIndex = -1;
-    else if (index >= options.length) activeIndex = options.length - 1;
-    else activeIndex = index;
-
-    clearActiveOption();
-
-    if (activeIndex === -1) return;
-
-    const option = options[activeIndex];
-    option.classList.add('active');
-    option.setAttribute('aria-selected', 'true');
-    if (!option.id) option.id = `${overlay.id}-option-${activeIndex}`;
-    input.setAttribute('aria-activedescendant', option.id);
-    option.scrollIntoView({ block: 'nearest' });
-  };
 
   const updateViewAllHref = (query) => {
     viewAll.href = query
@@ -797,15 +708,13 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   };
 
   const hideOverlay = () => {
-    setActiveIndex(-1);
     overlay.hidden = true;
-    input.setAttribute('aria-expanded', 'false');
+    delete document.body.dataset.scroll;
   };
 
   const showOverlay = () => {
     overlay.hidden = false;
-    input.setAttribute('aria-expanded', 'true');
-    positionAutocompleteOverlay(overlay, anchor);
+    if (window.innerWidth < 1200) document.body.dataset.scroll = false;
   };
 
   const renderResults = async (query) => {
@@ -818,41 +727,25 @@ export async function attachSearchAutocomplete(input, opts = {}) {
 
     const results = await searchItems(trimmed, maxResults);
     list.innerHTML = '';
-    activeIndex = -1;
 
     if (!results.length) {
       const empty = document.createElement('li');
-      empty.className = 'empty';
-      empty.setAttribute('role', 'presentation');
+      empty.className = 'no-results';
       empty.textContent = copy.noResults || 'No results found';
       list.appendChild(empty);
     } else {
-      results.forEach((item, index) => {
-        const li = createAutocompleteItem(item, copy);
-        li.id = `${overlay.id}-option-${index}`;
-        list.appendChild(li);
-      });
+      results.forEach((item) => list.appendChild(createSuggestionsItem(item, copy)));
     }
-
-    viewAll.id = `${overlay.id}-option-view-all`;
-    viewAll.setAttribute('role', 'option');
-    viewAll.setAttribute('aria-selected', 'false');
 
     updateViewAllHref(trimmed);
     showOverlay();
   };
 
-  const AUTOCOMPLETE_DEBOUNCE_MS = 150;
+  const SUGGESTIONS_DEBOUNCE_MS = 150;
 
   const scheduleSearch = () => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      renderResults(input.value);
-    }, AUTOCOMPLETE_DEBOUNCE_MS);
-  };
-
-  const onReposition = () => {
-    if (!overlay.hidden) positionAutocompleteOverlay(overlay, anchor);
+    debounceTimer = setTimeout(() => renderResults(input.value), SUGGESTIONS_DEBOUNCE_MS);
   };
 
   const onDocumentClick = (e) => {
@@ -860,99 +753,63 @@ export async function attachSearchAutocomplete(input, opts = {}) {
     hideOverlay();
   };
 
-  const onInputKeydown = (e) => {
-    const options = getOptions();
-    const isOpen = !overlay.hidden && options.length > 0;
-
+  const navigate = (e, links) => {
+    const current = links.indexOf(document.activeElement);
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (!input.value.trim()) return;
-      if (overlay.hidden) {
-        renderResults(input.value).then(() => setActiveIndex(0));
-        return;
-      }
-      if (!isOpen) return;
-      setActiveIndex(activeIndex < options.length - 1 ? activeIndex + 1 : 0);
-      return;
-    }
-
-    if (e.key === 'ArrowUp') {
+      links[current < links.length - 1 ? current + 1 : 0]?.focus();
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (!isOpen) return;
-      setActiveIndex(activeIndex <= 0 ? -1 : activeIndex - 1);
-      return;
-    }
-
-    if (e.key === 'Home' && isOpen) {
-      e.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-
-    if (e.key === 'End' && isOpen) {
-      e.preventDefault();
-      setActiveIndex(options.length - 1);
-      return;
-    }
-
-    if (e.key === 'Enter' && isOpen && activeIndex >= 0) {
-      e.preventDefault();
-      const option = options[activeIndex];
-      const link = option.matches('a') ? option : option.querySelector('a');
-      if (link?.href) window.location.href = link.href;
-      return;
-    }
-
-    if (e.key === 'Escape') {
+      if (current <= 0) input.focus();
+      else links[current - 1]?.focus();
+    } else if (e.key === 'Escape') {
       e.preventDefault();
       hideOverlay();
-      return;
-    }
-
-    if (e.key === 'Tab') {
+      input.focus();
+    } else if (e.key === 'Tab') {
       hideOverlay();
     }
   };
 
-  const onOptionHover = (e) => {
-    const option = e.target.closest('[role="option"]');
-    if (!option || !overlay.contains(option)) return;
-    const options = getOptions();
-    const index = options.indexOf(option);
-    if (index >= 0) setActiveIndex(index);
+  const onInputKeydown = (e) => {
+    if (overlay.hidden) return;
+    const links = getFocusableLinks();
+    if (!links.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      links[0].focus();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      hideOverlay();
+    } else if (e.key === 'Tab') {
+      hideOverlay();
+    }
   };
 
-  input.setAttribute('role', 'combobox');
-  input.setAttribute('aria-autocomplete', 'list');
-  input.setAttribute('aria-expanded', 'false');
-  input.setAttribute('aria-controls', overlay.id);
+  const onOverlayKeydown = (e) => navigate(e, getFocusableLinks());
 
+  const onInputFocus = () => {
+    if (list.children.length) showOverlay();
+  };
+
+  input.addEventListener('focus', onInputFocus);
   input.addEventListener('input', scheduleSearch);
   input.addEventListener('keydown', onInputKeydown);
-  overlay.addEventListener('mouseover', onOptionHover);
+  overlay.addEventListener('keydown', onOverlayKeydown);
   document.addEventListener('click', onDocumentClick);
-  window.addEventListener('resize', onReposition);
-  window.addEventListener('scroll', onReposition, true);
 
-  if (input.value.trim()) {
-    renderResults(input.value);
-  }
+  if (input.value.trim()) renderResults(input.value);
 
   const destroy = () => {
     clearTimeout(debounceTimer);
+    input.removeEventListener('focus', onInputFocus);
     input.removeEventListener('input', scheduleSearch);
     input.removeEventListener('keydown', onInputKeydown);
-    overlay.removeEventListener('mouseover', onOptionHover);
+    overlay.removeEventListener('keydown', onOverlayKeydown);
     document.removeEventListener('click', onDocumentClick);
-    window.removeEventListener('resize', onReposition);
-    window.removeEventListener('scroll', onReposition, true);
     overlay.remove();
-    delete input.dataset.searchAutocomplete;
-    input.removeAttribute('role');
-    input.removeAttribute('aria-autocomplete');
-    input.removeAttribute('aria-expanded');
-    input.removeAttribute('aria-controls');
-    input.removeAttribute('aria-activedescendant');
+    delete input.dataset.searchSuggestions;
+    delete document.body.dataset.scroll;
   };
 
   return { destroy };
@@ -960,7 +817,7 @@ export async function attachSearchAutocomplete(input, opts = {}) {
 
 /**
  * Hydrate all [data-copy] elements from widget copy.
- * @param {HTMLElement} container - .search-results root element
+ * @param {HTMLElement} container - .search root element
  * @param {Object} copy - Widget copy for the current language
  */
 function hydrateCopy(container, copy) {
@@ -995,80 +852,75 @@ function displayResults(element, results, page, copy) {
  * @param {HTMLElement} element - .pagination nav element
  * @param {number} totalResults - Total number of results
  * @param {number} page - Current page number (1-based)
- * @param {Object} copy - Widget copy
- * @param {Function} onPageChange - Called with new page number on button click
  */
-function displayPagination(element, totalResults, page, copy, onPageChange) {
-  const pageNum = parseInt(page, 10) || 1;
+function displayPagination(element, totalResults, page) {
   if (!element) return;
+  const pageNum = parseInt(page, 10) || 1;
   const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE);
-  element.innerHTML = '';
-  if (totalPages <= 1) return;
+  const prevBtn = element.querySelector('button:first-child');
+  const nextBtn = element.querySelector('button:last-child');
+  const pagesList = element.querySelector('ol');
 
-  const prevBtn = document.createElement('button');
-  prevBtn.type = 'button';
-  prevBtn.textContent = copy.previous || 'Previous';
+  pagesList.innerHTML = '';
+
+  if (totalPages <= 1) {
+    element.hidden = true;
+    return;
+  }
+
+  element.hidden = false;
+
   prevBtn.disabled = pageNum <= 1;
   if (pageNum > 1) prevBtn.dataset.page = pageNum - 1;
-  element.appendChild(prevBtn);
+  else delete prevBtn.dataset.page;
 
-  const pages = document.createElement('span');
-  pages.className = 'pages';
-  const ellipsis = () => {
-    const span = document.createElement('span');
-    span.textContent = '…';
-    span.setAttribute('aria-hidden', 'true');
-    return span;
-  };
-  if (pageNum > 3) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '1';
-    btn.dataset.page = '1';
-    pages.appendChild(btn);
-    if (pageNum > 4) pages.appendChild(ellipsis());
-  }
-  for (let i = Math.max(1, pageNum - 2); i <= Math.min(totalPages, pageNum + 2); i += 1) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = i;
-    btn.dataset.page = i;
-    if (i === pageNum) btn.setAttribute('aria-current', 'page');
-    pages.appendChild(btn);
-  }
-  if (pageNum < totalPages - 2) {
-    if (pageNum < totalPages - 3) pages.appendChild(ellipsis());
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = totalPages;
-    btn.dataset.page = totalPages;
-    pages.appendChild(btn);
-  }
-  element.appendChild(pages);
-
-  const nextBtn = document.createElement('button');
-  nextBtn.type = 'button';
-  nextBtn.textContent = copy.next || 'Next';
   nextBtn.disabled = pageNum >= totalPages;
   if (pageNum < totalPages) nextBtn.dataset.page = pageNum + 1;
-  element.appendChild(nextBtn);
+  else delete nextBtn.dataset.page;
 
-  if (onPageChange) {
-    element.querySelectorAll('button[data-page]').forEach((btn) => {
-      btn.addEventListener('click', () => onPageChange(parseInt(btn.dataset.page, 10)));
-    });
+  const ellipsis = () => {
+    const li = document.createElement('li');
+    li.classList.add('ellipsis');
+    li.setAttribute('aria-hidden', true);
+    li.textContent = '…';
+    return li;
+  };
+
+  const pageItem = (num, current = false) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'button';
+    btn.textContent = num;
+    btn.dataset.page = num;
+    if (current) btn.setAttribute('aria-current', 'page');
+    li.appendChild(btn);
+    return li;
+  };
+
+  if (pageNum > 3) {
+    pagesList.appendChild(pageItem(1));
+    if (pageNum > 4) pagesList.appendChild(ellipsis());
+  }
+  for (let i = Math.max(1, pageNum - 2); i <= Math.min(totalPages, pageNum + 2); i += 1) {
+    pagesList.appendChild(pageItem(i, i === pageNum));
+  }
+  if (pageNum < totalPages - 2) {
+    if (pageNum < totalPages - 3) pagesList.appendChild(ellipsis());
+    pagesList.appendChild(pageItem(totalPages));
   }
 }
 
 /**
  * Wire search, pagination, and URL state to the container.
- * @param {HTMLElement} container - .search-results root
+ * @param {HTMLElement} container - .search root
  * @param {Object} config - Initial config
  * @param {Object} copy - Widget copy (i18n labels)
  */
 function buildSearchFiltering(container, config = {}, copy = {}) {
   let currentPage = 1;
 
+  const searchElement = container.querySelector('#fulltext');
   const resultsElement = container.querySelector('.results');
   const infoElement = container.querySelector('.info');
   const paginationElement = container.querySelector('.pagination');
@@ -1077,16 +929,15 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
 
   const showEmptyState = () => {
     resultsElement.innerHTML = '';
-    if (paginationElement) paginationElement.innerHTML = '';
+    if (paginationElement) { paginationElement.querySelector('ol').innerHTML = ''; paginationElement.hidden = true; }
     if (infoElement) infoElement.hidden = true;
     if (noResultsElement) noResultsElement.hidden = true;
     if (promptElement) promptElement.hidden = false;
-    container.classList.remove('search-results-has-query');
   };
 
   const createFilterConfig = (resetPage = true) => {
     const filterConfig = { ...config };
-    filterConfig.search = document.getElementById('fulltext').value;
+    filterConfig.search = searchElement.value;
     filterConfig.page = resetPage ? 1 : currentPage;
     if (resetPage) currentPage = 1;
     return filterConfig;
@@ -1101,9 +952,7 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
     }
 
     if (promptElement) promptElement.hidden = true;
-    const index = await loadSearchIndex();
-    const results = filterBySearch(index, query);
-    sortByRelevance(results, query);
+    const results = await searchItems(query);
 
     const page = parseInt(filterConfig.page, 10) || 1;
     currentPage = page;
@@ -1115,22 +964,17 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
     const hasResults = totalResults > 0;
     if (infoElement) infoElement.hidden = !hasResults;
     if (noResultsElement) noResultsElement.hidden = hasResults;
-    container.classList.add('search-results-has-query');
     container.querySelector('#results-count').textContent = totalResults;
     container.querySelector('#results-start').textContent = startNum;
     container.querySelector('#results-end').textContent = endNum;
 
     displayResults(resultsElement, results, page, copy);
     if (page > 1) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    displayPagination(paginationElement, totalResults, page, copy, (pageNum) => {
-      currentPage = pageNum;
-      runSearch(createFilterConfig(false));
-    });
+    displayPagination(paginationElement, totalResults, page);
 
     if (updateURLState) updateURL(filterConfig);
   };
 
-  const searchElement = container.querySelector('#fulltext');
   searchElement.addEventListener('input', () => runSearch(createFilterConfig(true)));
   searchElement.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') runSearch(createFilterConfig(true));
@@ -1141,6 +985,15 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       runSearch(createFilterConfig(true));
+    });
+  }
+
+  if (paginationElement) {
+    paginationElement.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-page]');
+      if (!btn || btn.disabled) return;
+      currentPage = parseInt(btn.dataset.page, 10);
+      runSearch(createFilterConfig(false));
     });
   }
 
@@ -1172,14 +1025,11 @@ function buildSearchFiltering(container, config = {}, copy = {}) {
  * @param {HTMLElement} widget - Widget container element
  */
 export default async function decorate(widget) {
-  const container = widget.querySelector('.search-results');
-  if (!container) return;
-
   const lang = (document.documentElement.lang || 'en').split('-')[0];
   const copy = await loadWidgetCopy(lang);
 
-  hydrateCopy(container, copy);
-  buildSearchFiltering(container, {}, copy);
+  hydrateCopy(widget, copy);
+  buildSearchFiltering(widget, {}, copy);
 }
 
 export { loadSearchIndex, filterBySearch, searchItems };

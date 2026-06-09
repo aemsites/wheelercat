@@ -1,0 +1,38 @@
+<form data-copy="searchFormLabel" data-copy-target="aria-label" aria-label="Search">
+  <label for="fulltext">
+    <span class="icon icon-search"></span>
+  </label>
+  <input id="fulltext" type="search" data-copy="search" data-copy-target="placeholder,aria-label" aria-label="Search" placeholder="Search">
+</form>
+<p class="info" hidden>
+  <span data-copy="showing">Showing</span> <span id="results-start">0</span>-<span id="results-end">0</span> <span data-copy="of">of</span> <span id="results-count">0</span>
+</p>
+<section class="search-prompt">
+  <p class="intro" data-copy="emptyStateIntro">Use the search box above to find equipment and content across the site.</p>
+  <section>
+    <h2 data-copy="emptyStateNewTitle">New equipment</h2>
+    <p data-copy="emptyStateNewText">Search by product type, model, or attachment name.</p>
+  </section>
+  <section>
+    <h2 data-copy="emptyStateUsedTitle">Used equipment</h2>
+    <p data-copy="emptyStateUsedText">Search by model, location, hours, or price.</p>
+  </section>
+  <section>
+    <h2 data-copy="emptyStateOtherTitle">Other site content</h2>
+    <p data-copy="emptyStateOtherText">You can also find locations, services, careers, and general information pages.</p>
+  </section>
+</section>
+<section class="no-results" hidden>
+  <h2 data-copy="noResultsTitle">No results found</h2>
+  <p data-copy="noResultsText">Try different keywords or check your spelling.</p>
+</section>
+<ul class="results"></ul>
+<nav class="pagination button-wrapper" hidden data-copy="paginationLabel" data-copy-target="aria-label" aria-label="Pagination">
+  <button type="button" class="button outline" disabled data-copy="previous" data-copy-target="aria-label">
+    <span class="icon icon-arrow arrow-left"></span>
+  </button>
+  <ol class="button-wrapper"></ol>
+  <button type="button" class="button outline" data-copy="next" data-copy-target="aria-label">
+    <span class="icon icon-arrow"></span>
+  </button>
+</nav>
