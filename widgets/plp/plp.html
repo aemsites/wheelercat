@@ -1,0 +1,81 @@
+<aside class="filters" aria-label="Filter inventory">
+  <form>
+    <div class="form-field">
+      <label for="filter-equipment" data-copy="equipment">Equipment</label>
+      <select id="filter-equipment">
+        <option value=""></option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="filter-model" data-copy="model">Model</label>
+      <select id="filter-model">
+        <option value="" data-copy="allModels">All Models</option>
+      </select>
+    </div>
+    <!-- <div class="form-field">
+      <label for="filter-distance" data-copy="distance">Distance</label>
+      <input type="range" id="filter-distance" min="10" max="500" value="100" aria-valuemin="10" aria-valuemax="500" aria-valuenow="100" aria-describedby="filter-distance-desc">
+      <p id="filter-distance-desc"></p>
+    </div> -->
+    <fieldset class="form-field" id="filter-dealer">
+      <legend data-copy="dealers">Dealers</legend>
+    </fieldset>
+    <div class="form-field">
+      <label for="filter-price" data-copy="price">Price</label>
+      <input type="range" id="filter-price" min="0" aria-valuemin="0" value="0" aria-valuenow="0" aria-describedby="filter-price-desc">
+      <p id="filter-price-desc"></p>
+    </div>
+    <div class="form-field">
+      <label for="filter-year" data-copy="year">Year</label>
+      <input type="range" id="filter-year" min="1925" aria-valuemin="1925" max="2026" aria-valuemax="2026" value="1925" aria-valuenow="2026" aria-describedby="filter-year-desc">
+      <p id="filter-year-desc"></p>
+    </div>
+    <!-- <div class="details">
+      <details class="form-field">
+        <summary>Hours</summary>
+        <label for="filter-hours">Hours</label>
+        <input type="range" id="filter-hours" min="0" aria-valuemin="0" value="0" aria-valuenow="0" aria-describedby="filter-hours-desc">
+        <p id="filter-hours-desc"></p>
+      </details>
+      <details class="form-field">
+        <summary data-copy="features">Features</summary>
+        <fieldset>
+          <legend data-copy="features">Features</legend>
+        </fieldset>
+      </details>
+    </div> -->
+  </form>
+</aside>
+<section class="listing">
+  <header class="controls">
+    <p><span data-copy="showing">Showing</span> <span id="result-min">0</span>–<span id="result-max">0</span> <span data-copy="of">of</span> <span id="result-total">0</span></p>
+    <!-- <label for="sort-by">Sort by</label>
+    <select id="sort-by">
+      <option value="distance">Distance</option>
+      <option value="price-asc">Price: low to high</option>
+      <option value="price-desc">Price: high to low</option>
+      <option value="year-desc">Year: newest</option>
+      <option value="hours-asc">Hours: lowest</option>
+    </select> -->
+    <nav aria-label="Equipment condition">
+      <div class="button-wrapper" role="tablist">
+        <button role="tab" aria-selected="false" data-copy="new">New</button>
+        <button role="tab" aria-selected="true" data-copy="used">Used</button>
+        <button role="tab" aria-selected="false" data-copy="rental">Rental</button>
+      </div>
+    </nav>
+  </header>
+  <ul class="results" aria-live="polite">
+  </ul>
+  <footer class="pagination">
+    <nav class="button-wrapper" data-copy="pagination" data-copy-target="aria-label" aria-label="Pagination">
+      <button type="button" class="button outline" disabled data-copy="previous" data-copy-target="aria-label">
+        <span class="icon icon-arrow arrow-left"></span>
+      </button>
+      <ol class="button-wrapper"></ol>
+      <button type="button" class="button outline" data-copy="next" data-copy-target="aria-label">
+        <span class="icon icon-arrow"></span>
+      </button>
+    </nav>
+  </footer>
+</section>

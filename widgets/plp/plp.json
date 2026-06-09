@@ -1,0 +1,25 @@
+{
+  "en": {
+    "equipment": "Equipment",
+    "model": "Model",
+    "location": "Location",
+    "distance": "Distance",
+    "dealers": "Dealers",
+    "allDealers": "All Dealers",
+    "allModels": "All Models",
+    "price": "Price",
+    "serialNumber": "S/N",
+    "hoursSuffix": "hrs",
+    "viewDetails": "View Details",
+    "year": "Year",
+    "features": "Features",
+    "new": "New",
+    "used": "Used",
+    "rental": "Rental",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "pagination": "Pagination"
+  }
+}

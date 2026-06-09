@@ -32,6 +32,13 @@ export default async function decorate(widget) {
     // load css asynchronously
     const cssLoaded = loadCSS(writeUrl(widgetPath, widgetName, 'css'));
 
+    // stamp authored params onto dataset before decorate runs
+    widget.dataset.source = source.href;
+    const params = new URLSearchParams(searchParams);
+    params.forEach((value, key) => {
+      widget.dataset[key] = value;
+    });
+
     // load and execute js
     const decorationComplete = (async () => {
       const mod = await import(writeUrl(widgetPath, widgetName, 'js'));
@@ -52,11 +59,6 @@ export default async function decorate(widget) {
     const container = wrapper.closest('.widget-container');
     container.classList.add(`${cssPrefix}-container`);
     widget.classList.add(cssPrefix);
-    widget.dataset.source = source.href;
-    const params = new URLSearchParams(searchParams);
-    params.forEach((value, key) => {
-      widget.dataset[key] = value;
-    });
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('widget failed to load:', error);
