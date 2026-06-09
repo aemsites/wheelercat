@@ -1,0 +1,21 @@
+{
+  "en": {
+    "equipment": "Equipment",
+    "model": "Model",
+    "location": "Location",
+    "distance": "Distance",
+    "dealers": "Dealers",
+    "allDealers": "All Dealers",
+    "price": "Price",
+    "year": "Year",
+    "features": "Features",
+    "new": "New",
+    "used": "Used",
+    "rental": "Rental",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "pagination": "Pagination"
+  }
+}
