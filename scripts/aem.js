@@ -440,6 +440,7 @@ function decorateIcon(span, prefix = '', alt = '') {
   img.width = 16;
   img.height = 16;
   span.append(img);
+  if (window.iconObserver) window.iconObserver.observe(img);
 }
 
 /**
@@ -448,6 +449,39 @@ function decorateIcon(span, prefix = '', alt = '') {
  * @param {string} [prefix] prefix to be added to icon the src
  */
 function decorateIcons(element, prefix = '') {
+  window.iconObserver = window.iconObserver || new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      window.iconObserver.unobserve(entry.target);
+      const img = entry.target;
+      const { src } = img;
+      window.iconCache = window.iconCache || new Map();
+      if (!window.iconCache.has(src)) {
+        window.iconCache.set(src, fetch(src).then((r) => r.text()));
+      }
+      window.iconCache.get(src).then((svgText) => {
+        const temp = document.createElement('div');
+        temp.innerHTML = svgText;
+        const svg = temp.querySelector('svg');
+        if (!svg || !img.isConnected) return;
+        const titleEl = svg.querySelector('title');
+        const title = titleEl && titleEl.textContent;
+        if (!svgText.toLowerCase().includes('currentcolor')) {
+          if (title) img.alt = title;
+          return;
+        }
+        svg.setAttribute('focusable', false);
+        if (title) {
+          svg.setAttribute('role', 'img');
+          svg.setAttribute('aria-label', title);
+        } else {
+          svg.setAttribute('aria-hidden', true);
+        }
+        img.replaceWith(svg);
+      });
+    });
+  });
+
   const icons = element.querySelectorAll('span.icon');
   icons.forEach((span) => {
     decorateIcon(span, prefix);
