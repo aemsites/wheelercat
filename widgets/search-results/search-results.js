@@ -184,7 +184,7 @@ function filterBySearch(index, searchTerm) {
   const terms = parseSearchTerms(searchTerm);
   const displayTerms = parseDisplayTerms(searchTerm);
 
-  return index.filter((item) => terms.every((termNorm) => termMatchesItem(item, termNorm)))
+  return index.filter((item) => terms.every((term) => termMatchesItem(item, term)))
     .map((item) => ({
       ...item,
       searchTerm: searchTerm.trim().toLowerCase(),
@@ -233,7 +233,7 @@ function getTermSortKey(item, termNorm) {
  * @returns {number[]}
  */
 function getMultiTermSortKey(item, terms) {
-  return terms.flatMap((termNorm) => getTermSortKey(item, termNorm));
+  return terms.flatMap((term) => getTermSortKey(item, term));
 }
 
 /**
@@ -318,6 +318,21 @@ function getResultImageSrc(item) {
   if (!item.image.trim().startsWith('https://')) return '';
   return addImageParams(getRelativeImagePath(item.image));
 }
+
+/**
+ * Get a compact image src for autocomplete items.
+ * @param {Object} item - Normalized search item
+ * @returns {string}
+ */
+function getAutocompleteImageSrc(item) {
+  if (!hasOgImage(item)) return '';
+  const path = getRelativeImagePath(item.image);
+  const sep = path.includes('?') ? '&' : '?';
+  const AUTOCOMPLETE_IMAGE_PARAMS = 'width=120&height=90&format=webply&optimize=medium';
+  return `${path}${sep}${AUTOCOMPLETE_IMAGE_PARAMS}`;
+}
+
+/* highlight */
 
 /**
  * Build a map from normalized index to original string index.
@@ -441,13 +456,12 @@ function createUsedEquipmentSpecs(item, copy) {
     createSpec(copy.model || 'Model', item.model, item.searchTerms),
     createSpec(copy.location || 'Location', item.location, item.searchTerms),
     createSpec(copy.hours || 'Hours', formatHours(item.hours, copy), item.searchTerms),
-    createSpec(copy.price || 'Price', item.price, item.searchTerms, 'spec spec-price'),
+    createSpec(copy.price || 'Price', item.price, item.searchTerms, 'spec price'),
   ].filter(Boolean);
 
   if (!specs.length) return null;
 
   const dl = document.createElement('dl');
-  dl.className = 'equipment-specs';
   specs.forEach((spec) => dl.appendChild(spec));
   return dl;
 }
@@ -461,7 +475,7 @@ function createUsedEquipmentSpecs(item, copy) {
 function createCategoryBadge(item, copy) {
   if (!item.category) return null;
   const badge = document.createElement('span');
-  badge.className = `category-badge ${item.category}`;
+  badge.className = `badge ${item.category}`;
   badge.textContent = item.category === 'used'
     ? (copy.badgeUsedEquipment || 'Used Equipment')
     : (copy.badgeNewEquipment || 'New Equipment');
@@ -476,7 +490,7 @@ function createCategoryBadge(item, copy) {
  */
 function createResultCard(item, copy = {}) {
   const li = document.createElement('li');
-  li.className = `card${item.category ? ` ${item.category}-equipment` : ''}`;
+  li.className = 'card';
 
   const link = document.createElement('a');
   link.href = item.path || '#';
@@ -503,16 +517,12 @@ function createResultCard(item, copy = {}) {
   const content = document.createElement('div');
   content.className = 'content';
 
-  const header = document.createElement('div');
-  header.className = 'content-header';
-
   const title = document.createElement('h3');
   const titleText = item.title || '';
   title.innerHTML = item.searchTerms?.length
     ? highlightTerms(titleText, item.searchTerms)
     : escapeHTML(titleText);
-  header.appendChild(title);
-  content.appendChild(header);
+  content.appendChild(title);
 
   if (item.category === 'used') {
     const specs = createUsedEquipmentSpecs(item, copy);
@@ -565,266 +575,6 @@ function updateURL(filterConfig) {
 }
 
 /**
- * Populate the empty-state prompt from widget copy.
- * @param {HTMLElement} container - .search-results root element
- * @param {Object} copy - Widget copy for the current language
- */
-function populateSearchPrompt(container, copy) {
-  const title = container.querySelector('.search-prompt-title');
-  if (title) title.textContent = copy.emptyStateTitle || 'Start typing to search';
-
-  const intro = container.querySelector('.search-prompt-intro');
-  if (intro) {
-    intro.textContent = copy.emptyStateIntro
-      || 'Use the search box above to find equipment and content across the site.';
-  }
-
-  const sections = container.querySelectorAll('.search-prompt-section');
-  const sectionCopy = [
-    { title: copy.emptyStateNewTitle, text: copy.emptyStateNewText },
-    { title: copy.emptyStateUsedTitle, text: copy.emptyStateUsedText },
-    { title: copy.emptyStateOtherTitle, text: copy.emptyStateOtherText },
-  ];
-
-  sections.forEach((section, index) => {
-    const data = sectionCopy[index];
-    if (!data) return;
-    const sectionTitle = section.querySelector('.search-prompt-section-title');
-    const sectionText = section.querySelector('.search-prompt-section-text');
-    if (sectionTitle) sectionTitle.textContent = data.title || '';
-    if (sectionText) sectionText.textContent = data.text || '';
-  });
-}
-
-/**
- * Build search UI and wire search/pagination.
- * @param {HTMLElement} container - .search-results root
- * @param {Object} config - Initial config
- * @param {Object} copy - Widget copy (i18n labels)
- */
-function buildSearchFiltering(container, config = {}, copy = {}) {
-  const ITEMS_PER_PAGE = 12;
-  let currentPage = 1;
-
-  const resultsElement = container.querySelector('.results');
-  const infoElement = container.querySelector('.info');
-  const paginationElement = container.querySelector('.pagination');
-  const promptElement = container.querySelector('.search-prompt');
-
-  const showEmptyState = () => {
-    resultsElement.innerHTML = '';
-    if (paginationElement) paginationElement.innerHTML = '';
-    if (infoElement) infoElement.hidden = true;
-    if (promptElement) promptElement.hidden = false;
-    container.classList.remove('search-results-has-query');
-  };
-
-  const createFilterConfig = (resetPage = true) => {
-    const filterConfig = { ...config };
-    filterConfig.search = document.getElementById('fulltext').value;
-    filterConfig.page = resetPage ? 1 : currentPage;
-    if (resetPage) currentPage = 1;
-    return filterConfig;
-  };
-
-  const displayResults = (results, page = 1) => {
-    resultsElement.innerHTML = '';
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    const pageResults = results.slice(start, end);
-    pageResults.forEach((item) => resultsElement.append(createResultCard(item, copy)));
-    if (page > 1) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const displayPagination = (totalResults, page, onPageChange) => {
-    const pageNum = parseInt(page, 10) || 1;
-    if (!paginationElement) return;
-    const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE);
-    paginationElement.innerHTML = '';
-    if (totalPages <= 1) return;
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.textContent = copy.previous || 'Previous';
-    prevBtn.disabled = pageNum <= 1;
-    if (pageNum > 1) prevBtn.dataset.page = pageNum - 1;
-    paginationElement.appendChild(prevBtn);
-
-    const pages = document.createElement('span');
-    pages.className = 'pages';
-    const ellipsis = () => {
-      const span = document.createElement('span');
-      span.textContent = '…';
-      span.setAttribute('aria-hidden', 'true');
-      return span;
-    };
-    if (pageNum > 3) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = '1';
-      btn.dataset.page = '1';
-      pages.appendChild(btn);
-      if (pageNum > 4) pages.appendChild(ellipsis());
-    }
-    for (let i = Math.max(1, pageNum - 2); i <= Math.min(totalPages, pageNum + 2); i += 1) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = i;
-      btn.dataset.page = i;
-      if (i === pageNum) btn.setAttribute('aria-current', 'page');
-      pages.appendChild(btn);
-    }
-    if (pageNum < totalPages - 2) {
-      if (pageNum < totalPages - 3) pages.appendChild(ellipsis());
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = totalPages;
-      btn.dataset.page = totalPages;
-      pages.appendChild(btn);
-    }
-    paginationElement.appendChild(pages);
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.textContent = copy.next || 'Next';
-    nextBtn.disabled = pageNum >= totalPages;
-    if (pageNum < totalPages) nextBtn.dataset.page = pageNum + 1;
-    paginationElement.appendChild(nextBtn);
-
-    if (onPageChange) {
-      paginationElement.querySelectorAll('button[data-page]').forEach((btn) => {
-        btn.addEventListener('click', () => onPageChange(parseInt(btn.dataset.page, 10)));
-      });
-    }
-  };
-
-  const runSearch = async (filterConfig = config, updateURLState = true) => {
-    const query = (filterConfig.search || '').trim();
-    if (!query) {
-      showEmptyState();
-      if (updateURLState) updateURL({ search: '', page: 1 });
-      return;
-    }
-
-    if (promptElement) promptElement.hidden = true;
-    const index = await loadSearchIndex();
-    const results = filterBySearch(index, query);
-    sortByRelevance(results, query);
-
-    const page = parseInt(filterConfig.page, 10) || 1;
-    currentPage = page;
-
-    const totalResults = results.length;
-    const startNum = totalResults > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0;
-    const endNum = Math.min(page * ITEMS_PER_PAGE, totalResults);
-
-    if (infoElement) infoElement.hidden = false;
-    container.classList.add('search-results-has-query');
-    container.querySelector('#results-count').textContent = totalResults;
-    container.querySelector('#results-start').textContent = startNum;
-    container.querySelector('#results-end').textContent = endNum;
-
-    displayResults(results, page);
-    displayPagination(totalResults, page, (pageNum) => {
-      currentPage = pageNum;
-      runSearch(createFilterConfig(false));
-    });
-
-    if (updateURLState) updateURL(filterConfig);
-  };
-
-  const searchElement = container.querySelector('#fulltext');
-  searchElement.addEventListener('input', () => runSearch(createFilterConfig(true)));
-  searchElement.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') runSearch(createFilterConfig(true));
-  });
-
-  const form = container.querySelector('form.controls');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      runSearch(createFilterConfig(true));
-    });
-  }
-
-  const urlConfig = getConfigFromURL();
-  const initialConfig = { ...config, ...urlConfig };
-  if (urlConfig.page) currentPage = parseInt(urlConfig.page, 10);
-  if (urlConfig.search) searchElement.value = urlConfig.search;
-
-  loadSearchIndex();
-
-  if (initialConfig.search?.trim()) {
-    runSearch(initialConfig);
-  } else {
-    showEmptyState();
-  }
-
-  window.addEventListener('popstate', (event) => {
-    if (event.state?.filterConfig) {
-      const saved = event.state.filterConfig;
-      if (saved.search !== undefined) searchElement.value = saved.search || '';
-      if (saved.page) currentPage = parseInt(saved.page, 10);
-      runSearch(saved, false);
-    }
-  });
-}
-
-/**
- * Decorates the search results widget.
- * @param {HTMLElement} widget - Widget container element
- */
-export default async function decorate(widget) {
-  const container = widget.querySelector('.search-results');
-  if (!container) return;
-
-  const lang = (document.documentElement.lang || 'en').split('-')[0];
-  const copy = await loadWidgetCopy(lang);
-
-  const existingH1 = document.querySelector('main h1');
-  if (existingH1 && !container.contains(existingH1)) {
-    existingH1.classList.add('title');
-    container.insertBefore(existingH1, container.firstChild);
-  }
-
-  const searchInput = container.querySelector('#fulltext');
-  if (searchInput) {
-    searchInput.placeholder = copy.search || 'Search';
-    searchInput.setAttribute('aria-label', copy.search || 'Search');
-  }
-
-  const form = container.querySelector('form.controls');
-  if (form) form.setAttribute('aria-label', copy.searchFormLabel || copy.search || 'Search');
-
-  const pagination = container.querySelector('.pagination');
-  if (pagination) pagination.setAttribute('aria-label', copy.paginationLabel || 'Pagination');
-
-  const showingLabel = container.querySelector('.showing-label');
-  if (showingLabel) showingLabel.textContent = copy.showing || 'Showing';
-  const ofLabel = container.querySelector('.of-label');
-  if (ofLabel) ofLabel.textContent = copy.of || 'of';
-
-  const searchBtn = container.querySelector('.search-btn');
-  if (searchBtn) searchBtn.setAttribute('aria-label', copy.search || 'Search');
-
-  populateSearchPrompt(container, copy);
-  buildSearchFiltering(container, {}, copy);
-}
-
-/**
- * Get a compact image src for autocomplete items.
- * @param {Object} item - Normalized search item
- * @returns {string}
- */
-function getAutocompleteImageSrc(item) {
-  if (!hasOgImage(item)) return '';
-  const path = getRelativeImagePath(item.image);
-  const sep = path.includes('?') ? '&' : '?';
-  const AUTOCOMPLETE_IMAGE_PARAMS = 'width=120&height=90&format=webply&optimize=medium';
-  return `${path}${sep}${AUTOCOMPLETE_IMAGE_PARAMS}`;
-}
-
-/**
  * Run a filtered, sorted search against the index.
  * @param {string} searchTerm - Raw user input from the search field
  * @param {number} [limit] - Optional maximum number of results to return
@@ -845,12 +595,12 @@ async function searchItems(searchTerm, limit) {
  */
 function createAutocompleteItem(item, copy) {
   const li = document.createElement('li');
-  li.className = 'search-autocomplete-item';
+  li.className = 'item';
   li.setAttribute('role', 'option');
 
   const link = document.createElement('a');
   link.href = item.path || '#';
-  link.className = 'search-autocomplete-link';
+  link.className = 'link';
 
   const imageSrc = getAutocompleteImageSrc(item);
   if (imageSrc) {
@@ -858,18 +608,18 @@ function createAutocompleteItem(item, copy) {
     img.src = imageSrc;
     img.alt = '';
     img.loading = 'lazy';
-    img.className = 'search-autocomplete-thumb';
+    img.className = 'thumb';
     link.appendChild(img);
   }
 
   const content = document.createElement('div');
-  content.className = 'search-autocomplete-content';
+  content.className = 'content';
 
   const titleRow = document.createElement('div');
-  titleRow.className = 'search-autocomplete-title-row';
+  titleRow.className = 'row';
 
   const title = document.createElement('span');
-  title.className = 'search-autocomplete-title';
+  title.className = 'title';
   const titleText = item.title || '';
   title.innerHTML = item.searchTerms?.length
     ? highlightTerms(titleText, item.searchTerms)
@@ -878,7 +628,6 @@ function createAutocompleteItem(item, copy) {
 
   const badge = createCategoryBadge(item, copy);
   if (badge) {
-    badge.classList.add('search-autocomplete-badge');
     titleRow.appendChild(badge);
   }
   content.appendChild(titleRow);
@@ -891,7 +640,7 @@ function createAutocompleteItem(item, copy) {
     ].filter(Boolean);
     if (metaParts.length) {
       const meta = document.createElement('span');
-      meta.className = 'search-autocomplete-meta';
+      meta.className = 'meta';
       meta.textContent = metaParts.join(' · ');
       content.appendChild(meta);
     }
@@ -899,7 +648,7 @@ function createAutocompleteItem(item, copy) {
     const descText = (item.description || '').trim();
     if (descText) {
       const meta = document.createElement('span');
-      meta.className = 'search-autocomplete-meta';
+      meta.className = 'meta';
       const excerpt = descText.length > 80 ? `${descText.slice(0, 80)}…` : descText;
       meta.innerHTML = item.searchTerms?.length
         ? highlightTerms(excerpt, item.searchTerms)
@@ -988,13 +737,13 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   overlay.setAttribute('aria-label', copy.autocompleteLabel || 'Search suggestions');
 
   const list = document.createElement('ul');
-  list.className = 'search-autocomplete-results';
+  list.className = 'results';
   overlay.appendChild(list);
 
   const footer = document.createElement('div');
-  footer.className = 'search-autocomplete-footer';
+  footer.className = 'footer';
   const viewAll = document.createElement('a');
-  viewAll.className = 'search-autocomplete-view-all';
+  viewAll.className = 'view-all';
   viewAll.textContent = copy.viewAllResults || 'View all results';
   footer.appendChild(viewAll);
   overlay.appendChild(footer);
@@ -1005,7 +754,7 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   let activeIndex = -1;
 
   const getOptions = () => [
-    ...list.querySelectorAll('.search-autocomplete-item[role="option"]'),
+    ...list.querySelectorAll('.item[role="option"]'),
     ...(viewAll.href ? [viewAll] : []),
   ];
 
@@ -1073,7 +822,7 @@ export async function attachSearchAutocomplete(input, opts = {}) {
 
     if (!results.length) {
       const empty = document.createElement('li');
-      empty.className = 'search-autocomplete-empty';
+      empty.className = 'empty';
       empty.setAttribute('role', 'presentation');
       empty.textContent = copy.noResults || 'No results found';
       list.appendChild(empty);
@@ -1207,6 +956,230 @@ export async function attachSearchAutocomplete(input, opts = {}) {
   };
 
   return { destroy };
+}
+
+/**
+ * Hydrate all [data-copy] elements from widget copy.
+ * @param {HTMLElement} container - .search-results root element
+ * @param {Object} copy - Widget copy for the current language
+ */
+function hydrateCopy(container, copy) {
+  container.querySelectorAll('[data-copy]').forEach((el) => {
+    const value = copy[el.dataset.copy];
+    if (!value) return;
+    const target = el.dataset.copyTarget;
+    if (target) {
+      target.split(',').forEach((attr) => el.setAttribute(attr.trim(), value));
+    } else el.textContent = value;
+  });
+}
+
+const ITEMS_PER_PAGE = 12;
+
+/**
+ * Render one page of results into the list element.
+ * @param {HTMLElement} element - .results list element
+ * @param {Array<Object>} results - Full filtered result set
+ * @param {number} page - Page number (1-based)
+ * @param {Object} copy - Widget copy
+ */
+function displayResults(element, results, page, copy) {
+  element.innerHTML = '';
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  results.slice(start, start + ITEMS_PER_PAGE)
+    .forEach((item) => element.append(createResultCard(item, copy)));
+}
+
+/**
+ * Render pagination controls into the nav element.
+ * @param {HTMLElement} element - .pagination nav element
+ * @param {number} totalResults - Total number of results
+ * @param {number} page - Current page number (1-based)
+ * @param {Object} copy - Widget copy
+ * @param {Function} onPageChange - Called with new page number on button click
+ */
+function displayPagination(element, totalResults, page, copy, onPageChange) {
+  const pageNum = parseInt(page, 10) || 1;
+  if (!element) return;
+  const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE);
+  element.innerHTML = '';
+  if (totalPages <= 1) return;
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.textContent = copy.previous || 'Previous';
+  prevBtn.disabled = pageNum <= 1;
+  if (pageNum > 1) prevBtn.dataset.page = pageNum - 1;
+  element.appendChild(prevBtn);
+
+  const pages = document.createElement('span');
+  pages.className = 'pages';
+  const ellipsis = () => {
+    const span = document.createElement('span');
+    span.textContent = '…';
+    span.setAttribute('aria-hidden', 'true');
+    return span;
+  };
+  if (pageNum > 3) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '1';
+    btn.dataset.page = '1';
+    pages.appendChild(btn);
+    if (pageNum > 4) pages.appendChild(ellipsis());
+  }
+  for (let i = Math.max(1, pageNum - 2); i <= Math.min(totalPages, pageNum + 2); i += 1) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = i;
+    btn.dataset.page = i;
+    if (i === pageNum) btn.setAttribute('aria-current', 'page');
+    pages.appendChild(btn);
+  }
+  if (pageNum < totalPages - 2) {
+    if (pageNum < totalPages - 3) pages.appendChild(ellipsis());
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = totalPages;
+    btn.dataset.page = totalPages;
+    pages.appendChild(btn);
+  }
+  element.appendChild(pages);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.textContent = copy.next || 'Next';
+  nextBtn.disabled = pageNum >= totalPages;
+  if (pageNum < totalPages) nextBtn.dataset.page = pageNum + 1;
+  element.appendChild(nextBtn);
+
+  if (onPageChange) {
+    element.querySelectorAll('button[data-page]').forEach((btn) => {
+      btn.addEventListener('click', () => onPageChange(parseInt(btn.dataset.page, 10)));
+    });
+  }
+}
+
+/**
+ * Wire search, pagination, and URL state to the container.
+ * @param {HTMLElement} container - .search-results root
+ * @param {Object} config - Initial config
+ * @param {Object} copy - Widget copy (i18n labels)
+ */
+function buildSearchFiltering(container, config = {}, copy = {}) {
+  let currentPage = 1;
+
+  const resultsElement = container.querySelector('.results');
+  const infoElement = container.querySelector('.info');
+  const paginationElement = container.querySelector('.pagination');
+  const promptElement = container.querySelector('.search-prompt');
+  const noResultsElement = container.querySelector('.no-results');
+
+  const showEmptyState = () => {
+    resultsElement.innerHTML = '';
+    if (paginationElement) paginationElement.innerHTML = '';
+    if (infoElement) infoElement.hidden = true;
+    if (noResultsElement) noResultsElement.hidden = true;
+    if (promptElement) promptElement.hidden = false;
+    container.classList.remove('search-results-has-query');
+  };
+
+  const createFilterConfig = (resetPage = true) => {
+    const filterConfig = { ...config };
+    filterConfig.search = document.getElementById('fulltext').value;
+    filterConfig.page = resetPage ? 1 : currentPage;
+    if (resetPage) currentPage = 1;
+    return filterConfig;
+  };
+
+  const runSearch = async (filterConfig = config, updateURLState = true) => {
+    const query = (filterConfig.search || '').trim();
+    if (!query) {
+      showEmptyState();
+      if (updateURLState) updateURL({ search: '', page: 1 });
+      return;
+    }
+
+    if (promptElement) promptElement.hidden = true;
+    const index = await loadSearchIndex();
+    const results = filterBySearch(index, query);
+    sortByRelevance(results, query);
+
+    const page = parseInt(filterConfig.page, 10) || 1;
+    currentPage = page;
+
+    const totalResults = results.length;
+    const startNum = totalResults > 0 ? (page - 1) * ITEMS_PER_PAGE + 1 : 0;
+    const endNum = Math.min(page * ITEMS_PER_PAGE, totalResults);
+
+    const hasResults = totalResults > 0;
+    if (infoElement) infoElement.hidden = !hasResults;
+    if (noResultsElement) noResultsElement.hidden = hasResults;
+    container.classList.add('search-results-has-query');
+    container.querySelector('#results-count').textContent = totalResults;
+    container.querySelector('#results-start').textContent = startNum;
+    container.querySelector('#results-end').textContent = endNum;
+
+    displayResults(resultsElement, results, page, copy);
+    if (page > 1) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    displayPagination(paginationElement, totalResults, page, copy, (pageNum) => {
+      currentPage = pageNum;
+      runSearch(createFilterConfig(false));
+    });
+
+    if (updateURLState) updateURL(filterConfig);
+  };
+
+  const searchElement = container.querySelector('#fulltext');
+  searchElement.addEventListener('input', () => runSearch(createFilterConfig(true)));
+  searchElement.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') runSearch(createFilterConfig(true));
+  });
+
+  const form = container.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      runSearch(createFilterConfig(true));
+    });
+  }
+
+  const urlConfig = getConfigFromURL();
+  const initialConfig = { ...config, ...urlConfig };
+  if (urlConfig.page) currentPage = parseInt(urlConfig.page, 10);
+  if (urlConfig.search) searchElement.value = urlConfig.search;
+
+  loadSearchIndex();
+
+  if (initialConfig.search?.trim()) {
+    runSearch(initialConfig);
+  } else {
+    showEmptyState();
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (e.state?.filterConfig) {
+      const saved = e.state.filterConfig;
+      if (saved.search !== undefined) searchElement.value = saved.search || '';
+      if (saved.page) currentPage = parseInt(saved.page, 10);
+      runSearch(saved, false);
+    }
+  });
+}
+
+/**
+ * Decorates the search results widget.
+ * @param {HTMLElement} widget - Widget container element
+ */
+export default async function decorate(widget) {
+  const container = widget.querySelector('.search-results');
+  if (!container) return;
+
+  const lang = (document.documentElement.lang || 'en').split('-')[0];
+  const copy = await loadWidgetCopy(lang);
+
+  hydrateCopy(container, copy);
+  buildSearchFiltering(container, {}, copy);
 }
 
 export { loadSearchIndex, filterBySearch, searchItems };
