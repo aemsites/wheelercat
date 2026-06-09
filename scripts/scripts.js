@@ -142,10 +142,22 @@ function decorateEyebrows(main) {
 }
 
 /**
+ * Sets target and rel on links whose hostname differs from the current page.
+ * @param {Element} container - The element to search for links within
+ */
+export function decorateExternalLinks(container) {
+  container.querySelectorAll('a[href]').forEach((link) => {
+    if (new URL(link.href).hostname !== window.location.hostname) {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+}
+
+/**
  * Decorates the main element.
  * @param {Element} main The main element
  */
-// eslint-disable-next-line import/prefer-default-export
 export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);

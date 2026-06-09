@@ -73,6 +73,10 @@
   --radius-card: 16px;
   --radius-pill: 999px;
 
+  /* shadow */
+  --shadow-s: 0 4px 8px rgb(0 0 0 / 8%), 0 2px 4px rgb(0 0 0 / 5%);
+  --shadow-m: 0 1px 5px rgb(0 0 0 / 31%);
+
   /* layout */
   --header-height: 135px;
   --content-width: 1260px;
