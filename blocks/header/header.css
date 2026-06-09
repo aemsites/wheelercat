@@ -1,4 +1,4 @@
-header {
+body > header {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -8,17 +8,17 @@ header {
 }
 
 @media (width >= 1200px) {
-  header {
-    background: linear-gradient(var(--color-gray-200) 56px, var(--color-bg) 56px);
+  body > header {
+    background-image: linear-gradient(var(--color-gray-200) 56px, var(--color-bg) 56px);
   }
 }
 
 header .header {
   display: grid;
-  grid-template-areas:
-    'hamburger logo context'
-    'search search search';
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template:
+    'hamburger logo context' 68px
+    'search search search' auto
+    / 1fr 2fr 1fr;
   align-items: center;
   gap: calc(2 * var(--space-xs)) 0;
   max-width: var(--content-width);
@@ -27,23 +27,34 @@ header .header {
   font-size: var(--text-s);
 }
 
-@media (width >= 1200px) {
+@media (width >= 600px) {
   header .header {
-    grid-template-areas:
-      'context contact contact contact'
-      'logo nav search account';
-    grid-template-columns: auto 1fr auto auto;
-    gap: calc(2 * var(--space-s)) var(--space-m);
-    padding: var(--space-s);
+    padding: var(--space-xs) var(--space-s);
   }
 }
 
-header .header a {
-  color: inherit;
+@media (width >= 900px) {
+  header .header {
+    padding: var(--space-xs) var(--space-m);
+  }
+}
+
+@media (width >= 1200px) {
+  header .header {
+    grid-template:
+      'context contact contact contact' auto
+      'logo nav search account' auto / auto auto 1fr auto;
+    gap: calc(2 * var(--space-s)) var(--space-m);
+    padding: var(--space-s) var(--space-m);
+  }
 }
 
 header .header p {
   margin: 0;
+}
+
+header .header a {
+  color: inherit;
 }
 
 header .header ul {
@@ -101,8 +112,8 @@ header .header-logo {
 
 header .header-logo img,
 header .header-logo svg {
-  height: auto;
-  max-width: 250px;
+  width: auto;
+  max-height: 68px;
 }
 
 @media (width >= 1200px) {
@@ -112,8 +123,7 @@ header .header-logo svg {
 
   header .header-logo img,
   header .header-logo svg {
-    height: auto;
-    max-width: 150px;
+    max-height: 40px;
   }
 }
 
@@ -142,6 +152,19 @@ header .header-nav button {
   cursor: pointer;
 }
 
+header .header-nav a[target="_blank"]::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-left: 1ch;
+  background-color: currentcolor;
+  mask-image: url('/icons/external.svg');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  vertical-align: text-bottom;
+}
+
 header .header-nav button,
 header .header-nav > ul > li a {
   padding: 1em 0;
@@ -165,7 +188,8 @@ header .header-nav button[aria-expanded='true'] + ul {
   min-width: 100%;
   width: max-content;
   padding: var(--space-s);
-  background-color: var(--color-gray-200);
+  background-color: var(--color-bg-subtle);
+  box-shadow: var(--shadow-s);
 }
 
 header .header-nav button[aria-expanded='true'] .icon img,
@@ -238,12 +262,6 @@ header .header-hamburger {
   grid-area: hamburger;
 }
 
-@media (width >= 1200px) {
-  header .header-hamburger {
-    display: none;
-  }
-}
-
 /* stylelint-disable-next-line no-descending-specificity */
 header .header-hamburger button {
   display: flex;
@@ -255,6 +273,12 @@ header .header-hamburger button {
   padding: 0;
   background: none;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+header .header-hamburger button:hover,
+header .header-hamburger button:focus-visible {
+  transform: scale(1.2);
 }
 
 header .header-hamburger .icon-hamburger,
@@ -296,4 +320,10 @@ header .header-hamburger button[aria-expanded='true'] .icon-hamburger::before {
 
 header .header-hamburger button[aria-expanded='true'] .icon-hamburger::after {
   transform: translateY(-8px) rotate(-45deg);
+}
+
+@media (width >= 1200px) {
+  header .header-hamburger {
+    display: none;
+  }
 }
