@@ -1,0 +1,159 @@
+.plp ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* aside */
+.plp .filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.plp .filters p {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.plp .filters form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.plp .filters fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.plp .filters fieldset ul li + li {
+  margin-top: var(--space-xs);
+}
+
+.plp .filters .form-field > label,
+.plp .filters .form-field > legend,
+.plp .filters .form-field > summary {
+  margin-bottom: 0.2em;
+  font-size: var(--text-s);
+}
+
+.plp .filters select,
+.plp .filters input[type="text"],
+.plp .filters input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  padding: 0.5em 0.8em;
+  background-color: var(--color-bg);
+  font: inherit;
+}
+
+/* ranges */
+.plp .filters input[type="range"] {
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+}
+
+.plp .filters input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: linear-gradient(to right, var(--color-brand) var(--fill, 0%), var(--color-border) var(--fill, 0%));
+}
+
+.plp .filters input[type="range"]::-moz-range-track {
+  height: 4px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: linear-gradient(to right, var(--color-brand) var(--fill, 0%), var(--color-border) var(--fill, 0%));
+}
+
+.plp .filters input[type="range"]::-moz-range-progress {
+  background: var(--color-brand);
+}
+
+.plp .filters input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: calc(-11px);
+  border-radius: 50%;
+  border: 1px solid var(--color-black);
+  background-color: var(--color-bg);
+}
+
+.plp .filters input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--color-black);
+  background-color: var(--color-bg);
+}
+
+/* checkboxes */
+.plp .filters input[type="checkbox"] {
+  position: absolute;
+  margin: 0;
+  opacity: 0;
+  width: 1em;
+  height: 100%;
+}
+
+.plp .filters .form-field label {
+  display: grid;
+  grid-template-columns: 1em 1fr;
+  align-items: center;
+  gap: 2ch;
+  position: relative;
+  cursor: pointer;
+}
+
+.plp .filters .checkbox {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-s) / 2);
+  background-color: var(--color-bg);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.plp .filters input[type="checkbox"]:checked + .checkbox,
+.plp .filters input[type="checkbox"]:indeterminate + .checkbox {
+  border-color: var(--color-black);
+  background-color: var(--color-brand);
+}
+
+.plp .filters input[type="checkbox"]:checked + .checkbox::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  background-color: var(--color-black);
+  mask-image: url('/icons/check.svg');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+
+.plp .filters input[type="checkbox"]:indeterminate + .checkbox::after {
+  content: '–';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.plp .filters label:has(input[type="checkbox"]:disabled) {
+  color: var(--color-subtle);
+  cursor: not-allowed;
+}
+
+.plp .filters label:has(input[type="checkbox"]:disabled) .checkbox {
+  background-color: var(--color-bg-subtle);
+}
