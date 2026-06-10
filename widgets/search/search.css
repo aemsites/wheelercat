@@ -162,16 +162,6 @@
   padding-top: 0;
 }
 
-.search .result .body-wrapper :first-child,
-.search .result footer :first-child {
-  margin-top: 0;
-}
-
-.search .result .body-wrapper :last-child,
-.search .result footer :last-child {
-  margin-bottom: 0;
-}
-
 .search .result footer .price {
   margin-top: 0;
   font-size: var(--heading-m);
