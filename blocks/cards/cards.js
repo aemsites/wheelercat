@@ -20,6 +20,19 @@ function buildArrow() {
 }
 
 /**
+ * Detects a data card: two body columns with no media; renames the first to data-wrapper.
+ * @param {HTMLElement} card - Card element to evaluate
+ */
+function detectData(card) {
+  const cells = [...card.children];
+  if (cells.length !== 2) return;
+  if (!cells.every((c) => c.classList.contains('body-wrapper'))) return;
+  // decorate data
+  card.classList.add('data');
+  cells[0].classList.replace('body-wrapper', 'data-wrapper');
+}
+
+/**
  * Detects a testimonial card: no image column, body contains a blockquote.
  * @param {HTMLElement} card - Card element to evaluate
  */
@@ -89,6 +102,7 @@ function detectDirectory(card) {
  * @param {HTMLElement} card - Card element to evaluate
  */
 function detectVariants(card) {
+  detectData(card);
   detectTestimonial(card);
   detectNav(card);
   detectDirectory(card);
