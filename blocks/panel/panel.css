@@ -1,0 +1,70 @@
+.panel > div {
+  display: grid;
+  align-items: center;
+  border-radius: var(--radius-m);
+  background-color: var(--color-gray-500);
+  color: var(--color-bg);
+}
+
+@media (width >= 900px) {
+  .panel > div {
+    grid-template-columns: 1fr 1.1fr;
+  }
+}
+
+.panel h1,
+.panel h2,
+.panel h3,
+.panel h4,
+.panel h5,
+.panel h6,
+.panel a:not(.button),
+.panel .eyebrow {
+  color: inherit;
+}
+
+.panel .media-wrapper {
+  position: relative;
+  height: calc((100dvw - (2 * var(--space-m))) * (9 / 16));
+  max-height: 350px;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  overflow: hidden;
+}
+
+.panel .media-wrapper picture {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  object-fit: cover;
+}
+
+.panel .media-wrapper img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  object-fit: cover;
+}
+
+@media (width >= 900px) {
+  .panel .media-wrapper,
+  .panel .media-wrapper img {
+    border-radius: var(--radius-m) 0 0 var(--radius-m);
+  }
+
+  .panel .media-wrapper {
+    align-self: stretch;
+    height: auto;
+    min-height: 350px;
+    max-height: none;
+  }
+}
+
+.panel .body-wrapper {
+  padding: var(--space-xl) var(--space-m);
+}
+
+@media (width >= 900px) {
+  .panel .body-wrapper {
+    padding: var(--space-xl) var(--space-l);
+  }
+}
