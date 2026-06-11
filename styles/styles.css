@@ -212,11 +212,11 @@ pre {
 }
 
 pre {
-  padding: 1em;
   border-radius: var(--radius-s);
+  padding: 1em;
   background-color: var(--color-bg-subtle);
-  overflow-x: auto;
   white-space: pre;
+  overflow-x: auto;
 }
 
 h1:first-child,
@@ -295,8 +295,8 @@ hr {
 /* LINKS */
 a:any-link {
   color: var(--color-subtle);
-  text-decoration: none;
   overflow-wrap: break-word;
+  text-decoration: none;
 }
 
 a:hover,
@@ -320,7 +320,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
-  margin: 0.75em 0;
+  margin: 1.2em 0;
 }
 
 a.button:any-link,
@@ -429,10 +429,6 @@ button.button.cta:not(:disabled):focus-visible {
 
 /* SECTIONING */
 
-main > div {
-  margin: var(--space-l) var(--space-s);
-}
-
 main > .section {
   margin: var(--space-l) 0;
 }
@@ -443,18 +439,42 @@ main > .section > div {
   padding: 0 var(--space-m);
 }
 
-main > .section:first-of-type {
-  margin-top: 0;
+main > .section > [class*="-wrapper"] + [class*="-wrapper"] {
+  margin-top: var(--space-l);
+}
+
+main > .section > .default-content-wrapper + [class*="-wrapper"] {
+  margin-top: 1.2em;
 }
 
 @media (width >= 900px) {
+  main > .section {
+    margin: var(--space-xl) 0;
+  }
+
   main > .section > div {
     padding: 0 var(--space-l);
   }
 }
 
+main .section.light {
+  padding: var(--space-l) 0;
+  background-color: var(--color-bg-subtle);
+}
+
+main > .section.light:last-child {
+  margin-bottom: 0;
+}
+
+@media (width >= 900px) {
+  main .section.light {
+    padding: var(--space-xl) 0;
+  }
+}
+
 /* THEMES */
 
+/* stylelint-disable-next-line no-descending-specificity */
 body.center main .default-content-wrapper {
   text-align: center;
 }
