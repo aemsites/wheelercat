@@ -108,3 +108,28 @@ div.hero-container {
     font-size: var(--heading-xl);
   }
 }
+
+/* linked */
+.hero.linked {
+  cursor: pointer;
+}
+
+.hero.linked::before {
+  content: none;
+}
+
+.hero.linked .body-wrapper {
+  display: contents;
+}
+
+.hero.linked .body-wrapper a {
+  color: transparent;
+  opacity: 0;
+}
+
+.hero.linked .body-wrapper a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
