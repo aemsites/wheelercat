@@ -238,3 +238,15 @@
   font-size: 24px;
   pointer-events: none;
 }
+
+/* data */
+.cards .data .data-wrapper {
+  padding: var(--space-m);
+  padding-bottom: 0;
+  font-size: var(--heading-l);
+  font-weight: bold;
+}
+
+.cards .data .data-wrapper + .body-wrapper {
+  padding-top: 0;
+}
