@@ -95,11 +95,7 @@ export default function decorate(block) {
   const placeholder = createPlaceholder(block, embed);
 
   block.textContent = '';
-
-  if (placeholder) {
-    block.append(embed, placeholder);
-    return;
-  }
+  if (placeholder) block.append(placeholder);
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
