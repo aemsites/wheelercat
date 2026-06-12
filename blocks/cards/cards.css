@@ -89,7 +89,7 @@
   height: 100%;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
   object-fit: cover;
-  transition: transform 0.2s;
+  transition: transform 0.4s;
 }
 
 .cards li.linked:hover .media-wrapper img {
