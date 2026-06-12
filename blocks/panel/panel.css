@@ -6,6 +6,10 @@
   color: var(--color-bg);
 }
 
+.panel > div + div {
+  margin-top: var(--space-m);
+}
+
 @media (width >= 900px) {
   .panel > div {
     grid-template-columns: 1fr 1.1fr;
