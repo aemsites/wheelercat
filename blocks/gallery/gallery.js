@@ -217,7 +217,9 @@ function buildCarousel(block, ul) {
   const scrollToTrack = (trackIndex, behavior) => {
     let resolvedBehavior = behavior;
     if (behavior === 'smooth' && reducedMotion.matches) resolvedBehavior = 'instant';
-    ul.children[trackIndex].scrollIntoView({ behavior: resolvedBehavior, inline: 'center', block: 'nearest' });
+    const target = ul.children[trackIndex];
+    const left = target.offsetLeft + target.offsetWidth / 2 - ul.offsetWidth / 2;
+    ul.scrollTo({ left, behavior: resolvedBehavior });
   };
 
   const trackIndexAt = () => {
