@@ -212,6 +212,7 @@ async function loadLazy(doc) {
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
   loadFonts();
+
   // load quick edit
   const loadQuickEdit = async (...args) => {
     // eslint-disable-next-line import/no-cycle
@@ -249,12 +250,13 @@ function loadDelayed() {
   // eslint-disable-next-line import/no-cycle
   window.setTimeout(() => import('./delayed.js'), 3000);
   // load anything that can be postponed to the latest here
+  decorateExternalLinks(document.querySelector('main'));
 }
 
 export async function loadPage() {
   await loadEager(document);
   await loadLazy(document);
-  loadDelayed();
+  loadDelayed(document);
 }
 
 loadPage();
