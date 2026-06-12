@@ -13,7 +13,7 @@ footer .footer {
     'copyright';
   grid-template-columns: 1fr;
   gap: calc(2 * var(--space-xs));
-  max-width: var(--content-width);
+  max-width: var(--site-width);
   margin: 0 auto;
   padding: var(--space-xs);
   font-size: var(--text-s);

@@ -28,7 +28,7 @@ div.hero-container {
 }
 
 .hero::before {
-  left: max(calc(-1 * var(--space-xs)), calc((100% - var(--content-width)) / 2 - var(--space-m)));
+  left: max(calc(-1 * var(--space-xs)), calc((100% - var(--site-width)) / 2 - var(--space-m)));
   max-width: 350px;
   width: 66dvw;
   background-color: rgb(93 93 93 / 20%);
@@ -72,7 +72,7 @@ div.hero-container {
 .hero > div {
   flex: 1;
   margin: 0 auto;
-  max-width: var(--content-width);
+  max-width: var(--site-width);
 }
 
 .hero picture {

@@ -81,7 +81,8 @@
 
   /* layout */
   --header-height: 135px;
-  --content-width: 1260px;
+  --site-width: 1260px;
+  --content-width: 950px;
 }
 
 @media (width >= 1200px) {
@@ -434,9 +435,13 @@ main > .section {
 }
 
 main > .section > div {
-  max-width: var(--content-width);
+  max-width: var(--site-width);
   margin: auto;
   padding: 0 var(--space-m);
+}
+
+main > .section > .default-content-wrapper {
+  max-width: var(--content-width);
 }
 
 main > .section > [class*="-wrapper"] + [class*="-wrapper"] {

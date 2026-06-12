@@ -21,7 +21,7 @@ header .header {
     / 1fr 2fr 1fr;
   align-items: center;
   gap: calc(2 * var(--space-xs)) 0;
-  max-width: var(--content-width);
+  max-width: var(--site-width);
   margin: 0 auto;
   padding: var(--space-xs);
   font-size: var(--text-s);
