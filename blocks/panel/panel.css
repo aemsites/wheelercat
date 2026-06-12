@@ -47,6 +47,11 @@
   height: 100%;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
   object-fit: cover;
+  object-position: 40%;
+}
+
+.panel .media-wrapper[data-orientation="right"] img {
+  object-position: 60%;
 }
 
 .panel [data-orientation="right"] .media-wrapper,
