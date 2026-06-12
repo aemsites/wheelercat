@@ -29,10 +29,10 @@
 
 .panel .media-wrapper {
   position: relative;
+  overflow: hidden;
   height: calc((100dvw - (2 * var(--space-m))) * (9 / 16));
   max-height: 350px;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
-  overflow: hidden;
 }
 
 .panel .media-wrapper picture {
@@ -43,8 +43,8 @@
 }
 
 .panel .media-wrapper img {
-  width: 100%;
   height: 100%;
+  width: 100%;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
   object-fit: cover;
   object-position: 40%;

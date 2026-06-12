@@ -85,8 +85,8 @@ header .header-context a {
 
 /* header contact */
 header .header-contact {
-  grid-area: contact;
   display: none;
+  grid-area: contact;
 }
 
 header .header-contact address {
@@ -113,8 +113,8 @@ header .header-logo {
 
 header .header-logo img,
 header .header-logo svg {
-  width: auto;
   max-height: 68px;
+  width: auto;
 }
 
 @media (width >= 1200px) {
@@ -130,8 +130,8 @@ header .header-logo svg {
 
 /* header nav */
 header .header-nav {
-  grid-area: nav;
   display: none;
+  grid-area: nav;
 }
 
 header .header-nav > ul {
@@ -156,8 +156,8 @@ header .header-nav button {
 header .header-nav a[target="_blank"]::after {
   content: '';
   display: inline-block;
-  width: 1em;
   height: 1em;
+  width: 1em;
   margin-left: 1ch;
   background-color: currentcolor;
   mask-image: url('/icons/external.svg');
@@ -186,11 +186,11 @@ header .header-nav button[aria-expanded='true'] + ul {
   position: absolute;
   top: 100%;
   left: calc(-1 * var(--space-s));
-  min-width: 100%;
   width: max-content;
+  min-width: 100%;
   padding: var(--space-s);
-  background-color: var(--color-bg-subtle);
   box-shadow: var(--shadow-s);
+  background-color: var(--color-bg-subtle);
 }
 
 header .header-nav button[aria-expanded='true'] .icon img,
@@ -231,9 +231,9 @@ header .header-search label {
 }
 
 header .header-search input {
-  background: none;
   border: none;
   padding: 0.5em;
+  background: none;
 }
 
 @media (width >= 1200px) {
@@ -244,8 +244,8 @@ header .header-search input {
 
 /* header account */
 header .header-account {
-  grid-area: account;
   display: none;
+  grid-area: account;
 }
 
 /* stylelint-disable-next-line no-descending-specificity */

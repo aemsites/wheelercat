@@ -88,8 +88,8 @@ footer .footer details[open] .icon svg {
 
 footer .footer details > ul {
   display: block;
-  height: 0;
   overflow: hidden;
+  height: 0;
   transition: height 0.2s ease;
 }
 
@@ -114,8 +114,8 @@ footer .footer details ul li + li {
   }
 
   footer .footer details > ul {
-    height: auto;
     overflow: visible;
+    height: auto;
     transition: none;
   }
 
@@ -132,8 +132,8 @@ footer .footer-nav {
 footer .footer-nav a[target="_blank"]::after {
   content: '';
   display: inline-block;
-  width: 1em;
   height: 1em;
+  width: 1em;
   margin-left: 1ch;
   background-color: currentcolor;
   mask-image: url('/icons/external.svg');
@@ -194,8 +194,8 @@ footer .footer-locale [role="dialog"] {
   max-width: 320px;
   margin-top: var(--space-xs);
   padding: var(--space-s);
-  background-color: var(--color-bg-subtle);
   box-shadow: var(--shadow-s);
+  background-color: var(--color-bg-subtle);
 }
 
 footer .footer-locale form {
@@ -250,8 +250,8 @@ footer .footer-locale [aria-current] {
 footer .footer-locale [aria-current]::after {
   content: '';
   display: inline-block;
-  width: 1em;
   height: 1em;
+  width: 1em;
   background-color: currentcolor;
   mask-image: url('/icons/check.svg');
   mask-repeat: no-repeat;
@@ -274,16 +274,16 @@ footer .footer-social {
 footer .footer-social ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 1ch;
   justify-content: space-between;
+  gap: 1ch;
 }
 
 footer .footer-social a {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
   height: 44px;
+  width: 44px;
   transition: transform 0.2s;
 }
 
