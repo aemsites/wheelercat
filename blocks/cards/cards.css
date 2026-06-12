@@ -248,5 +248,5 @@
 }
 
 .cards .data .data-wrapper + .body-wrapper {
-  padding-top: var(--space-s);
+  padding-top: 0.8em;
 }
