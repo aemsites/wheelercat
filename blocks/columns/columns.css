@@ -22,18 +22,18 @@
 }
 
 .columns .media-wrapper img {
+  height: 100%;
+  width: 100%;
   object-fit: contain;
 }
 
 .columns .media-wrapper[data-orientation="landscape"] img {
   max-height: 300px;
-  width: 100%;
   aspect-ratio: 16 / 9;
 }
 
 .columns .media-wrapper[data-orientation="portrait"] img {
-  height: 100%;
-  max-width: 300px;
+  max-height: calc(100dvh - var(--header-height) - (2 * var(--space-m)));
   aspect-ratio: 3 / 4;
 }
 
