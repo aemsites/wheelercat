@@ -1,13 +1,21 @@
 /**
- * Builds a YouTube iframe from a youtube.com or youtu.be URL.
+ * Returns the video provider name for a supported URL.
+ * @param {string} url - the video page URL to inspect
+ * @returns {string|null} provider name (e.g. 'youtube')
+ */
+function detectType(url) {
+  const { hostname } = new URL(url);
+  if (hostname === 'youtu.be' || hostname.endsWith('youtube.com')) return 'youtube';
+  return null;
+}
+
+/**
+ * Builds a YouTube iframe.
  * @param {string} url - the video page or short URL to parse
  * @returns {HTMLIFrameElement|null} configured embed iframe
  */
 function createYouTubeEmbed(url) {
   const { hostname, pathname, searchParams } = new URL(url);
-  const isYouTube = hostname === 'youtu.be' || hostname.endsWith('youtube.com');
-  if (!isYouTube) return null;
-
   const id = hostname === 'youtu.be' ? pathname.slice(1) : searchParams.get('v');
   if (!id) return null;
 
@@ -20,10 +28,21 @@ function createYouTubeEmbed(url) {
 }
 
 /**
- * Builds a thumbnail overlay that removes itself and starts embed playback when activated.
+ * Builds an embed iframe for the given provider type and URL.
+ * @param {string} type - provider name returned by detectType
+ * @param {string} url - the video URL to embed
+ * @returns {HTMLIFrameElement|null} embed iframe
+ */
+function createEmbed(type, url) {
+  if (type === 'youtube') return createYouTubeEmbed(url);
+  return null;
+}
+
+/**
+ * Builds a thumbnail overlay.
  * @param {HTMLElement} block - block element containing the authored thumbnail image
- * @param {HTMLIFrameElement} embed - video iframe; receives autoplay=1 on activation
- * @returns {HTMLElement|null} the placeholder figure, or null if no image is found in block
+ * @param {HTMLIFrameElement} embed - video iframe
+ * @returns {HTMLElement|null} the placeholder figure
  */
 function createPlaceholder(block, embed) {
   const image = block.querySelector('picture, img');
@@ -37,7 +56,7 @@ function createPlaceholder(block, embed) {
 
   function play() {
     const src = new URL(embed.src);
-    src.searchParams.set('autoplay', '1');
+    src.searchParams.set('autoplay', 1);
     embed.src = src.href;
     figure.remove();
   }
@@ -54,34 +73,40 @@ function createPlaceholder(block, embed) {
 }
 
 /**
- * Tries each registered provider against url and returns the matched embed and provider name.
- * @param {string} url - the video URL to match against registered providers
- * @returns {{ embed: HTMLIFrameElement|null, source: string|null }} embed element and provider name
+ * Removes the block and its section wrapper from the DOM.
+ * @param {HTMLElement} block - the block element to remove
  */
-function createEmbed(url) {
-  const providers = [['youtube', createYouTubeEmbed]];
-  let embed = null;
-  let source = null;
-  providers.some(([name, create]) => {
-    embed = create(url);
-    if (embed) source = name;
-    return embed;
-  });
-  return { embed, source };
+function removeBlock(block) {
+  const wrapper = block.closest('.video-wrapper');
+  if (wrapper) wrapper.remove();
 }
 
 export default function decorate(block) {
   const link = block.querySelector('a[href]');
-  if (!link) {
-    const wrapper = block.closest('.video-wrapper');
-    if (wrapper) wrapper.remove();
+  if (!link) { removeBlock(block); return; }
+
+  const type = detectType(link.href);
+  if (!type) { removeBlock(block); return; }
+  block.dataset.source = type;
+
+  const embed = createEmbed(type, link.href);
+  if (!embed) { removeBlock(block); return; }
+
+  const placeholder = createPlaceholder(block, embed);
+
+  block.textContent = '';
+
+  if (placeholder) {
+    block.append(embed, placeholder);
     return;
   }
 
-  const { embed, source } = createEmbed(link.href);
-  if (!embed) return;
-  block.dataset.source = source;
-  const placeholder = createPlaceholder(block, embed);
-
-  block.replaceChildren(...[embed, placeholder].filter(Boolean));
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      block.append(embed);
+      observer.disconnect();
+    });
+  }, { rootMargin: '0px' });
+  observer.observe(block);
 }
