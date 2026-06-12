@@ -457,24 +457,65 @@ main > .section > .default-content-wrapper + [class*="-wrapper"] {
   }
 }
 
-main .section.light {
+main .section.center .default-content-wrapper {
+  text-align: center;
+}
+
+main .section.center .default-content-wrapper .button-wrapper {
+  justify-content: center;
+}
+
+main .section.light,
+main .section.dark {
   padding: var(--space-l) 0;
   background-color: var(--color-bg-subtle);
 }
 
-main > .section.light:last-child {
+main .section.dark {
+  background-color: var(--color-gray-500);
+  color: var(--color-bg);
+}
+
+main .section.dark h1,
+main .section.dark h2,
+main .section.dark h3,
+main .section.dark h4,
+main .section.dark h5,
+main .section.dark h6,
+main .section.dark a:not(.button),
+main .section.dark .eyebrow {
+  color: inherit;
+}
+
+main > .section.light:last-child,
+main > .section.dark:last-child {
+  margin-bottom: 0;
+}
+
+main > .section.light + .section.light,
+main > .section.light + .section.dark,
+main > .section.dark + .section.light,
+main > .section.dark + .section.dark {
+  margin-top: 0;
+}
+
+main > .section.light:has(+ .section.light),
+main > .section.light:has(+ .section.dark),
+main > .section.dark:has(+ .section.light),
+main > .section.dark:has(+ .section.dark) {
   margin-bottom: 0;
 }
 
 @media (width >= 900px) {
-  main .section.light {
+  main .section.light,
+  main .section.dark {
     padding: var(--space-xl) 0;
   }
 }
 
 /* THEMES */
 
-/* stylelint-disable-next-line no-descending-specificity */
+/* stylelint-disable no-descending-specificity */
 body.center main .default-content-wrapper {
   text-align: center;
 }
