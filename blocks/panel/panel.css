@@ -10,6 +10,10 @@
   .panel > div {
     grid-template-columns: 1fr 1.1fr;
   }
+
+  .panel [data-orientation="right"] {
+    grid-template-columns: 1.1fr 1fr;
+  }
 }
 
 .panel h1,
@@ -45,6 +49,11 @@
   object-fit: cover;
 }
 
+.panel [data-orientation="right"] .media-wrapper,
+.panel [data-orientation="right"] .media-wrapper img {
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
 @media (width >= 900px) {
   .panel .media-wrapper,
   .panel .media-wrapper img {
@@ -56,6 +65,11 @@
     height: auto;
     min-height: 350px;
     max-height: none;
+  }
+
+  .panel [data-orientation="right"] .media-wrapper,
+  .panel [data-orientation="right"] .media-wrapper img {
+    border-radius: 0 var(--radius-m) var(--radius-m) 0;
   }
 }
 
