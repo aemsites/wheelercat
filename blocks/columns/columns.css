@@ -4,7 +4,12 @@
   gap: var(--space-m);
 }
 
+.columns > div:not(:has(.media-wrapper)) {
+  gap: var(--space-l);
+}
+
 .columns .media-wrapper {
+  align-self: center;
   order: 0;
 }
 
@@ -31,7 +36,6 @@
 @media (width >= 600px) {
   .columns.cols-even > div {
     flex-direction: unset;
-    align-items: center;
   }
 
   .columns.cols-even > div > div {
@@ -44,7 +48,6 @@
 @media (width >= 900px) {
   .columns.cols-3 > div {
     flex-direction: unset;
-    align-items: center;
   }
 
   .columns.cols-3 > div > div {
@@ -57,7 +60,6 @@
 @media (width >= 1200px) {
   .columns > div {
     flex-direction: unset;
-    align-items: center;
   }
 
   .columns > div > div {
