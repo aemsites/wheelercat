@@ -4,6 +4,10 @@
   gap: var(--space-m);
 }
 
+.columns > div:has(.media-wrapper) {
+  align-items: center;
+}
+
 .columns > div:not(:has(.media-wrapper)) {
   gap: var(--space-l);
 }
