@@ -1,0 +1,174 @@
+.gallery > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* track */
+.gallery ul.track {
+  display: flex;
+  gap: var(--space-s);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overflow-x: scroll;
+}
+
+.gallery ul.track::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery ul.track .slide {
+  flex: 0 0 calc((100% - (var(--visible-slides, 1) - 1) * var(--space-s)) / var(--visible-slides, 1));
+  position: relative;
+  height: calc((100dvw - (2 * var(--space-m))) * (2 / 3));
+  max-height: 128px;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transition: border-color 0.2s;
+}
+
+/* slide */
+.gallery ul.track .slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: calc(0.95 * var(--radius-m));
+  background-color: rgb(0 0 0 / 40%);
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.gallery ul.track .slide[data-state="active"] {
+  border-color: var(--text-color);
+}
+
+.gallery ul.track .slide[data-state="active"]::before {
+  opacity: 0;
+}
+
+@media (width >= 600px) {
+  .gallery ul.track .slide {
+    aspect-ratio: 3 / 2;
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* nav */
+.gallery nav {
+  justify-content: center;
+  gap: var(--space-s);
+}
+
+.gallery nav > button.button {
+  min-height: 44px;
+  min-width: 44px;
+  border-color: var(--color-border);
+  border-radius: var(--radius-s);
+  padding: 0;
+  box-shadow: var(--shadow-s);
+  font-size: 24px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.gallery nav > button:hover,
+.gallery nav > button:focus-visible {
+  box-shadow: var(--shadow-m);
+}
+
+.gallery nav > ol {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0;
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.gallery nav > ol button {
+  height: 11px;
+  width: 11px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  background-color: var(--color-blue-light);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.gallery nav > ol button:hover,
+.gallery nav > ol button:focus-visible {
+  background-color: var(--color-blue);
+}
+
+.gallery nav > ol button[data-active="true"] {
+  border-color: var(--color-blue);
+  background-color: var(--color-blue);
+}
+
+@media (width >= 900px) {
+  .gallery nav {
+    gap: var(--space-s) var(--space-xl);
+  }
+}
+
+/* thumbnail-only */
+.gallery.thumbnail li {
+  position: relative;
+  cursor: pointer;
+}
+
+.gallery.thumbnail .body-wrapper {
+  position: absolute;
+  inset: 0;
+}
+
+.gallery.thumbnail .body-wrapper a {
+  color: transparent;
+  opacity: 0;
+}
+
+.gallery.thumbnail .body-wrapper a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.gallery.thumbnail .media-wrapper {
+  position: absolute;
+  inset: 0;
+  padding: var(--space-m);
+  overflow: hidden;
+}
+
+.gallery.thumbnail .media-wrapper picture {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.gallery.thumbnail .media-wrapper img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  transition: transform 0.4s;
+}
+
+.gallery.thumbnail li:hover .media-wrapper img {
+  transform: scale(1.05);
+}
+
+.gallery.thumbnail ul.track .slide::before {
+  content: none;
+}
+
+.gallery.thumbnail ul.track .slide[data-state="active"] {
+  border-color: transparent;
+}
