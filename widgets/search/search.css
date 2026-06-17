@@ -1,6 +1,6 @@
 /* container */
 .search {
-  max-width: var(--content-width);
+  max-width: var(--site-width);
   margin: 0 auto;
   scroll-margin-top: calc(var(--header-height) + 1em);
 }
@@ -160,16 +160,6 @@
 .search .result footer {
   padding: var(--space-m);
   padding-top: 0;
-}
-
-.search .result .body-wrapper :first-child,
-.search .result footer :first-child {
-  margin-top: 0;
-}
-
-.search .result .body-wrapper :last-child,
-.search .result footer :last-child {
-  margin-bottom: 0;
 }
 
 .search .result footer .price {

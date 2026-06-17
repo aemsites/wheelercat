@@ -81,7 +81,8 @@
 
   /* layout */
   --header-height: 135px;
-  --content-width: 1260px;
+  --site-width: 1260px;
+  --content-width: 950px;
 }
 
 @media (width >= 1200px) {
@@ -102,8 +103,8 @@
   *,
   *::before,
   *::after {
-    transition: none !important;
     animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -126,7 +127,7 @@ body[data-scroll="false"] {
   overflow-y: hidden;
 }
 
-header {
+body > header {
   height: var(--header-height);
   transition: height 0.2s;
 }
@@ -141,6 +142,8 @@ footer .footer[data-block-status="loaded"] {
   visibility: visible;
 }
 
+/* TYPOGRAPHY */
+
 h1,
 h2,
 h3,
@@ -149,7 +152,7 @@ h5,
 h6 {
   margin-top: 0.8em;
   margin-bottom: 0.25em;
-  scroll-margin: 2em;
+  scroll-margin-top: calc(1em + var(--header-height));
   color: var(--color-heading);
   font-family: var(--font-body);
   font-weight: 300;
@@ -180,6 +183,16 @@ h6 {
   font-size: var(--text-xs);
 }
 
+p,
+dl,
+ol,
+ul,
+pre,
+blockquote {
+  margin-top: 0.8em;
+  margin-bottom: 0.25em;
+}
+
 p.eyebrow {
   margin-bottom: 0;
   color: var(--color-subtle);
@@ -194,45 +207,98 @@ p.eyebrow + [data-eyebrow] {
   margin-top: 0.25em;
 }
 
-p,
-dl,
-ol,
-ul,
-pre,
-blockquote {
-  margin-top: 0.8em;
-  margin-bottom: 0.25em;
-}
-
 code,
 pre {
   font-size: var(--text-s);
 }
 
 pre {
-  padding: 1em;
-  border-radius: var(--radius-s);
-  background-color: var(--color-bg-subtle);
   overflow-x: auto;
+  border-radius: var(--radius-s);
+  padding: 1em;
+  background-color: var(--color-bg-subtle);
   white-space: pre;
 }
 
-main > div {
-  margin: var(--space-l) var(--space-s);
+h1:first-child,
+h2:first-child,
+h3:first-child,
+h4:first-child,
+h5:first-child,
+h6:first-child,
+p:first-child,
+dl:first-child,
+ol:first-child,
+ul:first-child,
+pre:first-child,
+blockquote:first-child {
+  margin-top: 0;
 }
 
-input,
-textarea,
-select,
-button {
-  font: inherit;
+h1:last-child,
+h2:last-child,
+h3:last-child,
+h4:last-child,
+h5:last-child,
+h6:last-child,
+p:last-child,
+dl:last-child,
+ol:last-child,
+ul:last-child,
+pre:last-child,
+blockquote:last-child {
+  margin-bottom: 0;
 }
 
-/* links */
+/* IMAGES & ICONS */
+
+img {
+  display: block;
+  height: auto;
+  width: auto;
+  max-width: 100%;
+  margin: auto;
+}
+
+.icon {
+  display: inline-block;
+  height: 1em;
+  width: auto;
+}
+
+.icon img,
+.icon svg {
+  height: 100%;
+  width: 100%;
+}
+
+.icon.icon-arrow img,
+.icon.icon-arrow svg,
+.icon.icon-chevron img,
+.icon.icon-chevron svg {
+  transition: transform 0.2s;
+}
+
+.icon.arrow-left img,
+.icon.arrow-left svg {
+  transform: rotate(180deg);
+}
+
+.icon.chevron-left img,
+.icon.chevron-left svg {
+  transform: rotate(90deg);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* LINKS */
 a:any-link {
   color: var(--color-subtle);
-  text-decoration: none;
   overflow-wrap: break-word;
+  text-decoration: none;
 }
 
 a:hover,
@@ -241,12 +307,22 @@ a:focus-visible {
   text-decoration: underline;
 }
 
-/* buttons */
+/* FORM ELEMENTS */
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+/* BUTTONS */
+
 .button-wrapper {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
-  margin: 0.75em 0;
+  margin: 1.2em 0;
 }
 
 a.button:any-link,
@@ -254,13 +330,13 @@ button.button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   box-sizing: border-box;
   max-width: 100%;
   margin: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   padding: 0.5em 1.2em;
-  overflow: hidden;
   font: inherit;
   font-size: var(--text-s);
   font-weight: 600;
@@ -273,8 +349,8 @@ button.button {
 }
 
 a.button[aria-disabled="true"] {
-  pointer-events: none;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 button.button:disabled {
@@ -353,69 +429,99 @@ button.button.cta:not(:disabled):focus-visible {
   background-color: var(--color-brand-dark);
 }
 
-hr {
-  border: none;
-  border-top: 1px solid var(--color-border);
-}
+/* SECTIONING */
 
-img {
-  display: block;
-  max-width: 100%;
-  width: auto;
-  height: auto;
-}
-
-.icon {
-  display: inline-block;
-  height: 1em;
-  width: auto;
-}
-
-.icon img,
-.icon svg {
-  height: 100%;
-  width: 100%;
-}
-
-.icon.icon-arrow img,
-.icon.icon-arrow svg,
-.icon.icon-chevron img,
-.icon.icon-chevron svg {
-  transition: transform 0.2s;
-}
-
-.icon.arrow-left img,
-.icon.arrow-left svg {
-  transform: rotate(180deg);
-}
-
-.icon.chevron-left img,
-.icon.chevron-left svg {
-  transform: rotate(90deg);
-}
-
-/* sections */
 main > .section {
   margin: var(--space-l) 0;
 }
 
 main > .section > div {
-  max-width: var(--content-width);
+  max-width: var(--site-width);
   margin: auto;
   padding: 0 var(--space-m);
 }
 
-main > .section:first-of-type {
-  margin-top: 0;
+main > .section > .default-content-wrapper {
+  max-width: var(--content-width);
+}
+
+main > .section > [class*="-wrapper"] + [class*="-wrapper"] {
+  margin-top: var(--space-l);
+}
+
+main > .section > .default-content-wrapper + [class*="-wrapper"] {
+  margin-top: 1.2em;
 }
 
 @media (width >= 900px) {
+  main > .section {
+    margin: var(--space-xl) 0;
+  }
+
   main > .section > div {
     padding: 0 var(--space-l);
   }
 }
 
-/* themes */
+main .section.center .default-content-wrapper {
+  text-align: center;
+}
+
+main .section.center .default-content-wrapper .button-wrapper {
+  justify-content: center;
+}
+
+main .section.light,
+main .section.dark {
+  padding: var(--space-l) 0;
+  background-color: var(--color-bg-subtle);
+}
+
+main .section.dark {
+  background-color: var(--color-gray-500);
+  color: var(--color-bg);
+}
+
+main .section.dark h1,
+main .section.dark h2,
+main .section.dark h3,
+main .section.dark h4,
+main .section.dark h5,
+main .section.dark h6,
+main .section.dark a:not(.button),
+main .section.dark .eyebrow {
+  color: inherit;
+}
+
+main > .section.light:last-child,
+main > .section.dark:last-child {
+  margin-bottom: 0;
+}
+
+main > .section.light + .section.light,
+main > .section.light + .section.dark,
+main > .section.dark + .section.light,
+main > .section.dark + .section.dark {
+  margin-top: 0;
+}
+
+main > .section.light:has(+ .section.light),
+main > .section.light:has(+ .section.dark),
+main > .section.dark:has(+ .section.light),
+main > .section.dark:has(+ .section.dark) {
+  margin-bottom: 0;
+}
+
+@media (width >= 900px) {
+  main .section.light,
+  main .section.dark {
+    padding: var(--space-xl) 0;
+  }
+}
+
+/* THEMES */
+
+/* stylelint-disable no-descending-specificity */
 body.center main .default-content-wrapper {
   text-align: center;
 }
