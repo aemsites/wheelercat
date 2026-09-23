@@ -519,6 +519,15 @@ main > .section.dark:has(+ .section.dark) {
   }
 }
 
+main > .section.hero-container:has(> .hero-wrapper:only-child) {
+  margin-bottom: 0;
+}
+
+main > .section.hero-container + .section.light,
+main > .section.hero-container + .section.dark {
+  margin-top: 0;
+}
+
 /* THEMES */
 
 /* stylelint-disable no-descending-specificity */
