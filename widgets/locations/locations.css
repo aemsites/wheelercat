@@ -1,0 +1,408 @@
+/* container */
+.locations {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  scroll-margin-top: calc(var(--header-height) + 1em);
+}
+
+.locations ol,
+.locations ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* search toolbar */
+.locations .toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-s);
+  align-items: start;
+  margin-bottom: var(--space-m);
+}
+
+.locations .toolbar form {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  margin-bottom: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  padding: 0 0.8em;
+}
+
+.locations form label {
+  line-height: 0;
+}
+
+.locations form input {
+  border: none;
+  padding: 0.5em;
+  background: none;
+}
+
+.locations .filter-menu {
+  position: relative;
+}
+
+.locations .filter-toggle {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.locations .filter-toggle[aria-expanded="true"],
+.locations .filter-toggle.active {
+  border-color: var(--color-brand-dark);
+  background-color: var(--color-brand);
+  color: var(--color-black);
+}
+
+.locations .filter-panel {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: 3;
+  width: min(320px, calc(100dvw - 2 * var(--space-m)));
+  max-height: calc(100dvh - var(--header-height));
+  overflow: hidden auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-m);
+  background-color: var(--color-bg);
+  padding: var(--space-m);
+}
+
+.locations .filter-panel[hidden] {
+  display: none;
+}
+
+.locations .filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  margin-bottom: var(--space-m);
+}
+
+.locations .filter-header h2 {
+  margin: 0;
+  font-size: var(--heading-s);
+}
+
+.locations .clear-all {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-blue);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.locations .filter-field {
+  min-width: 0;
+  margin: 0 0 var(--space-m);
+  border: 0;
+  padding: 0;
+}
+
+.locations .filter-field:last-child {
+  margin-bottom: 0;
+}
+
+.locations .filter-field legend {
+  margin-bottom: 0.6em;
+  padding: 0;
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
+.locations .filter-field ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+}
+
+.locations .filter-field label {
+  display: grid;
+  grid-template-columns: 1em 1fr;
+  align-items: center;
+  gap: 2ch;
+  position: relative;
+  cursor: pointer;
+  line-height: var(--lh-s);
+}
+
+.locations .filter-field input[type="checkbox"],
+.locations .filter-field input[type="radio"] {
+  position: absolute;
+  width: 1em;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+}
+
+.locations .filter-field .checkbox,
+.locations .filter-field .radio {
+  display: inline-flex;
+  flex-shrink: 0;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.locations .filter-field .checkbox {
+  border-radius: calc(var(--radius-s) / 2);
+}
+
+.locations .filter-field .radio {
+  border-radius: 50%;
+}
+
+.locations .filter-field input:checked + .checkbox,
+.locations .filter-field input:checked + .radio,
+.locations .filter-field input:indeterminate + .checkbox {
+  border-color: var(--color-black);
+  background-color: var(--color-brand);
+}
+
+.locations .filter-field input:checked + .checkbox::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  background-color: currentcolor;
+  mask-image: url('/icons/check.svg');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+
+.locations .filter-field input:checked + .radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.45em;
+  height: 0.45em;
+  border-radius: 50%;
+  background-color: var(--color-black);
+  transform: translate(-50%, -50%);
+}
+
+.locations .filter-field input:indeterminate + .checkbox::after {
+  content: '–';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* results count */
+.locations .info {
+  margin-bottom: var(--space-m);
+  color: var(--color-subtle);
+}
+
+.locations .info[hidden],
+.locations .locations-prompt[hidden],
+.locations .no-results[hidden],
+.locations .pagination[hidden] {
+  display: none;
+}
+
+/* empty + no-results states */
+.locations .locations-prompt .intro {
+  margin-bottom: var(--space-m);
+}
+
+/* results */
+.locations .results {
+  display: grid;
+  gap: var(--space-m);
+  margin-bottom: var(--space-m);
+}
+
+@media (width >= 600px) {
+  .locations .results {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+.locations .result {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-s);
+  background: var(--color-bg);
+  transition: box-shadow 0.2s;
+}
+
+.locations .result:hover {
+  box-shadow: var(--shadow-m);
+}
+
+.locations .result .body-wrapper {
+  flex: 1;
+  padding: var(--space-m);
+}
+
+.locations .result footer {
+  padding: var(--space-m);
+  padding-top: 0;
+}
+
+.locations .result .body-wrapper :first-child,
+.locations .result footer :first-child {
+  margin-top: 0;
+}
+
+.locations .result .body-wrapper :last-child,
+.locations .result footer :last-child {
+  margin-bottom: 0;
+}
+
+.locations .result .title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em 1ch;
+  margin-bottom: 0.4em;
+}
+
+.locations .result h2 {
+  margin: 0;
+  font-size: var(--heading-s);
+}
+
+.locations .result .badge {
+  display: inline-block;
+  border-radius: var(--radius-s);
+  padding: 0.2em 0.8em;
+  background-color: var(--color-black);
+  color: var(--color-bg);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+}
+
+.locations .result .badge.main {
+  background-color: var(--color-brand);
+  color: var(--color-black);
+}
+
+.locations .result .location-name {
+  margin: 0 0 0.6em;
+  color: var(--color-subtle);
+  font-size: var(--text-s);
+}
+
+.locations .result .address {
+  margin: 0 0 0.8em;
+  line-height: var(--lh-s);
+}
+
+.locations .result .meta {
+  margin: 0 0 0.4em;
+  color: var(--color-subtle);
+  font-size: var(--text-s);
+  line-height: var(--lh-s);
+}
+
+.locations .result .contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 1.5em;
+  margin: 0;
+  padding: 0;
+}
+
+.locations .result .contact a {
+  font-size: var(--text-s);
+}
+
+.locations .result footer .button {
+  width: 100%;
+}
+
+.locations .result footer .button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.locations .result footer .button::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-left: 1ch;
+  background-color: currentcolor;
+  mask-image: url('/icons/external.svg');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  vertical-align: text-bottom;
+}
+
+/* highlight */
+.locations .results mark {
+  outline: 1px solid var(--color-brand);
+  background-color: var(--color-brand);
+}
+
+/* pagination */
+.locations .pagination {
+  align-items: center;
+  justify-content: center;
+}
+
+@media (width >= 900px) {
+  .locations .pagination {
+    gap: var(--space-s) var(--space-xl);
+  }
+}
+
+.locations .pagination .ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -1ch;
+}
+
+.locations .pagination button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-s);
+  padding: 0;
+  font-weight: unset;
+}
+
+.locations .pagination > button {
+  font-size: 24px;
+}
+
+.locations .pagination ol button {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--color-blue-light) 49%, transparent 50%);
+  transition: color 0.2s;
+}
+
+.locations .pagination > button:not([disabled]) {
+  box-shadow: var(--shadow-s);
+  transition: all 0.2s;
+}
+
+.locations .pagination ol button[aria-current],
+.locations .pagination ol button:hover,
+.locations .pagination ol button:focus-visible {
+  background-image: radial-gradient(var(--color-blue) 49%, transparent 50%);
+  color: var(--color-bg);
+}
+
+.locations .pagination > button:not([disabled]):hover,
+.locations .pagination > button:not([disabled]):focus-visible {
+  box-shadow: var(--shadow-m);
+}

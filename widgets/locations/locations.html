@@ -1,0 +1,80 @@
+<div class="toolbar">
+  <form data-copy="searchFormLabel" data-copy-target="aria-label" aria-label="Find a dealer location">
+    <label for="location-search">
+      <span class="icon icon-search"></span>
+    </label>
+    <input id="location-search" type="search" data-copy="search" data-copy-target="placeholder,aria-label" aria-label="Find a location" placeholder="Find a location">
+  </form>
+  <div class="filter-menu">
+    <button type="button" id="filter-toggle" class="button outline filter-toggle" aria-expanded="false" aria-controls="filter-panel">
+      <span data-copy="filter">Filter</span>
+    </button>
+    <div id="filter-panel" class="filter-panel" hidden>
+      <header class="filter-header">
+        <h2 data-copy="filterBy">Filter By</h2>
+        <button type="button" class="clear-all" data-copy="clearAll">Clear All</button>
+      </header>
+      <fieldset id="filter-location-type" class="filter-field">
+        <legend data-copy="locationType">Location Type</legend>
+        <ul>
+          <li>
+            <label>
+              <input type="radio" name="location-type" value="all" checked>
+              <span class="radio" aria-hidden="true"></span>
+              <span data-copy="allLocations">All Locations</span>
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" name="location-type" value="sales">
+              <span class="radio" aria-hidden="true"></span>
+              <span data-copy="sales">Sales</span>
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" name="location-type" value="parts-services">
+              <span class="radio" aria-hidden="true"></span>
+              <span data-copy="partsServices">Parts &amp; Services</span>
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" name="location-type" value="rental">
+              <span class="radio" aria-hidden="true"></span>
+              <span data-copy="rental">Rental</span>
+            </label>
+          </li>
+        </ul>
+      </fieldset>
+      <fieldset id="filter-equipment-type" class="filter-field">
+        <legend data-copy="equipmentType">Equipment Type</legend>
+        <ul id="equipment-options"></ul>
+      </fieldset>
+    </div>
+  </div>
+</div>
+<p class="info" hidden>
+  <span data-copy="showing">Showing</span> <span id="results-start">0</span>-<span id="results-end">0</span> <span data-copy="of">of</span> <span id="results-count">0</span>
+</p>
+<section class="locations-prompt">
+  <p class="intro" data-copy="emptyStateIntro">Search by city, state, zip code, branch name, or service type to find Wheeler Cat and partner dealer locations near you.</p>
+  <section>
+    <h2 data-copy="emptyStateTipsTitle">Search tips</h2>
+    <p data-copy="emptyStateTipsText">Try a city name like "Salt Lake City", a state like "Utah", a zip code, or a service such as "rentals" or "truck engines".</p>
+  </section>
+</section>
+<section class="no-results" hidden>
+  <h2 data-copy="noResultsTitle">No locations found</h2>
+  <p data-copy="noResultsText">Try a different city, state, zip code, or branch name.</p>
+</section>
+<ul class="results"></ul>
+<nav class="pagination button-wrapper" hidden data-copy="paginationLabel" data-copy-target="aria-label" aria-label="Pagination">
+  <button type="button" class="button outline" disabled data-copy="previous" data-copy-target="aria-label">
+    <span class="icon icon-arrow arrow-left"></span>
+  </button>
+  <ol class="button-wrapper"></ol>
+  <button type="button" class="button outline" data-copy="next" data-copy-target="aria-label">
+    <span class="icon icon-arrow"></span>
+  </button>
+</nav>
