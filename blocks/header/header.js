@@ -90,6 +90,7 @@ function decorateNav(section) {
   });
 
   const nav = document.createElement('nav');
+  nav.id = 'nav';
   nav.classList.add(...section.classList);
   nav.append(list);
   section.replaceWith(nav);
@@ -99,14 +100,6 @@ function decorateNav(section) {
     nav.querySelectorAll('button[aria-expanded="true"]').forEach((open) => {
       open.setAttribute('aria-expanded', false);
     });
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    const open = nav.querySelector('button[aria-expanded="true"]');
-    if (!open) return;
-    open.setAttribute('aria-expanded', false);
-    open.focus();
   });
 }
 
@@ -178,11 +171,6 @@ function buildHamburger() {
   icon.classList.add('icon-hamburger');
   button.append(icon);
 
-  button.addEventListener('click', () => {
-    const expanded = button.getAttribute('aria-expanded') === 'true';
-    button.setAttribute('aria-expanded', !expanded);
-  });
-
   wrapper.append(button);
   return wrapper;
 }
@@ -222,6 +210,40 @@ export default async function decorate(block) {
 
   const hamburger = buildHamburger();
   block.prepend(hamburger);
+
+  const hamburgerButton = hamburger.querySelector('button');
+  const navElement = getSection(block, 'nav');
+
+  const setMenuExpanded = (expanded) => {
+    hamburgerButton.setAttribute('aria-expanded', expanded);
+    document.body.querySelectorAll(':scope > :not(header)').forEach((el) => {
+      el.toggleAttribute('inert', expanded);
+    });
+  };
+
+  hamburgerButton.addEventListener('click', () => {
+    setMenuExpanded(hamburgerButton.getAttribute('aria-expanded') !== 'true');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+
+    const openSubmenu = navElement && navElement.querySelector('button[aria-expanded="true"]');
+    if (openSubmenu) {
+      openSubmenu.setAttribute('aria-expanded', false);
+      openSubmenu.focus();
+      return;
+    }
+
+    if (hamburgerButton.getAttribute('aria-expanded') === 'true') {
+      setMenuExpanded(false);
+      hamburgerButton.focus();
+    }
+  });
+
+  window.matchMedia('(width >= 1200px)').addEventListener('change', (e) => {
+    if (e.matches) setMenuExpanded(false);
+  });
 
   decorateExternalLinks(block);
   decorateIcons(block);
