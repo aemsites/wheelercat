@@ -1,7 +1,4 @@
 body > header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-bg);
   background-image: linear-gradient(var(--color-bg) 83px, var(--color-gray-200) 83px);
@@ -11,6 +8,12 @@ body > header {
   body > header {
     background-image: linear-gradient(var(--color-gray-200) 56px, var(--color-bg) 56px);
   }
+}
+
+body > header:has([data-block-status='loaded']) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 body:has(.header-hamburger button[aria-expanded='true']) {
