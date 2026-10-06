@@ -127,6 +127,16 @@ body[data-scroll="false"] {
   overflow-y: hidden;
 }
 
+body:has(.header-search[hidden]) {
+  --header-height: 84px;
+}
+
+@media (width >= 1200px) {
+  body:has(.header-search[hidden]) {
+    --header-height: inherit;
+  }
+}
+
 body > header {
   height: var(--header-height);
   transition: height 0.2s;

@@ -34,6 +34,12 @@ header .header {
   font-size: var(--text-s);
 }
 
+header .header:has(.header-search[hidden]) {
+  grid-template:
+    'hamburger logo context' 68px
+    / 1fr 2fr 1fr;
+}
+
 header:has(.header-hamburger button[aria-expanded='true']) .header {
   grid-template:
     'hamburger logo context' 68px
@@ -65,6 +71,7 @@ header:has(.header-hamburger button[aria-expanded='true']) .header {
 
 @media (width >= 1200px) {
   header .header,
+  header .header:has(.header-search[hidden]),
   header:has(.header-hamburger button[aria-expanded='true']) .header {
     grid-template:
       'context contact contact contact' auto

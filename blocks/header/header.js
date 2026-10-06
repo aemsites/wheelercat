@@ -108,6 +108,12 @@ function decorateNav(section) {
  * @param {Element} section - The search section element
  */
 function decorateSearch(section) {
+  const searchWidget = document.querySelector('a[href*="/widgets/search/search.html"], .widget.search');
+  if (searchWidget) {
+    section.hidden = true;
+    return;
+  }
+
   const p = section.querySelector('p');
   const placeholder = p ? p.textContent.trim() : '';
 
