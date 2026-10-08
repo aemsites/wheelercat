@@ -481,6 +481,10 @@ main .section.center .default-content-wrapper .button-wrapper {
   justify-content: center;
 }
 
+main > .section:has(> .widget-wrapper:only-child > .similar-machines[hidden]) {
+  display: none;
+}
+
 main .section.light,
 main .section.dark {
   padding: var(--space-l) 0;
