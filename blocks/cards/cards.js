@@ -1,4 +1,130 @@
-import { decorateIcons } from '../../scripts/aem.js';
+import { createOptimizedPicture, decorateIcons } from '../../scripts/aem.js';
+import { getEquipmentType, normalizeLocation } from '../../scripts/scripts.js';
+
+/**
+ * Marks a card as fully clickable when it contains exactly one link.
+ * @param {HTMLElement} card - Card element to evaluate
+ */
+function linkCard(card) {
+  const links = [...card.querySelectorAll('a[href]')];
+  if (links.length !== 1) return;
+  card.classList.add('linked');
+}
+
+/**
+ * Format an hours value for display.
+ * @param {string} value - Authored hours value
+ * @param {Object} copy - Localized card copy
+ * @returns {string} Formatted hours or an empty string
+ */
+function formatHours(value, copy) {
+  if (!value || value === 'N/A') return '';
+  const num = String(value).replace(/,/g, '');
+  if (/^\d+$/.test(num)) {
+    return `${Number(num).toLocaleString('en-US')} ${copy.hoursSuffix || ''}`.trim();
+  }
+  return value;
+}
+
+/**
+ * Build the equipment card shared by listings and recommendations.
+ * @param {Object} row - Used-equipment index row
+ * @param {Object} copy - Localized card copy
+ * @param {number} headingLevel - Heading level within the containing section
+ * @returns {HTMLLIElement} Linked equipment card
+ */
+export function createEquipmentCard(row, copy, headingLevel = 2) {
+  const li = document.createElement('li');
+  li.className = 'result equipment';
+  const mediaWrapper = document.createElement('div');
+  mediaWrapper.className = 'media-wrapper';
+  if (row.image) {
+    mediaWrapper.appendChild(createOptimizedPicture(row.image, row.title || '', false, [{ width: 750 }]));
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'placeholder';
+    mediaWrapper.appendChild(placeholder);
+  }
+  if (row.year) {
+    const yearBadge = document.createElement('span');
+    yearBadge.className = 'badge year';
+    yearBadge.textContent = row.year;
+    mediaWrapper.appendChild(yearBadge);
+  }
+  const usedBadge = document.createElement('span');
+  usedBadge.className = 'badge used';
+  const usedIcon = document.createElement('span');
+  usedIcon.className = 'icon icon-certified-used';
+  usedBadge.appendChild(usedIcon);
+  mediaWrapper.appendChild(usedBadge);
+  decorateIcons(mediaWrapper);
+  li.appendChild(mediaWrapper);
+
+  const body = document.createElement('div');
+  body.className = 'body-wrapper';
+  const typeLabel = getEquipmentType(row.path);
+  if (typeLabel) {
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow type';
+    eyebrow.textContent = typeLabel;
+    body.appendChild(eyebrow);
+  }
+  if (row.title) {
+    const heading = document.createElement(`h${headingLevel}`);
+    if (typeLabel) heading.dataset.eyebrow = typeLabel;
+    heading.textContent = row.title;
+    body.appendChild(heading);
+  }
+  const formattedHours = formatHours(row.hours, copy);
+  if (row.serialNum || formattedHours) {
+    const metaList = document.createElement('ul');
+    metaList.className = 'meta';
+    if (row.serialNum) {
+      const snItem = document.createElement('li');
+      snItem.textContent = `${copy.serialNumber || ''}: ${row.serialNum}`;
+      metaList.appendChild(snItem);
+    }
+    if (formattedHours) {
+      const hoursItem = document.createElement('li');
+      hoursItem.textContent = formattedHours;
+      metaList.appendChild(hoursItem);
+    }
+    body.appendChild(metaList);
+  }
+  li.appendChild(body);
+
+  const footer = document.createElement('footer');
+  if (row.price) {
+    const priceMeta = document.createElement('p');
+    priceMeta.className = 'meta';
+    priceMeta.textContent = copy.price || '';
+    footer.appendChild(priceMeta);
+    const priceEl = document.createElement('p');
+    priceEl.className = 'price';
+    priceEl.textContent = row.price;
+    footer.appendChild(priceEl);
+    footer.appendChild(document.createElement('hr'));
+  }
+  if (row.location) {
+    const locationEl = document.createElement('p');
+    locationEl.className = 'meta location';
+    locationEl.textContent = normalizeLocation(row.location);
+    footer.appendChild(locationEl);
+  }
+  const buttonLabel = copy.viewDetails || row.title || row.model;
+  const buttonWrapper = document.createElement('p');
+  buttonWrapper.className = 'button-wrapper';
+  const button = document.createElement('a');
+  button.href = row.path;
+  button.className = 'button primary';
+  button.textContent = buttonLabel;
+  button.setAttribute('aria-label', `${buttonLabel} - ${row.title || row.model || ''}`);
+  buttonWrapper.appendChild(button);
+  footer.appendChild(buttonWrapper);
+  li.appendChild(footer);
+  linkCard(li);
+  return li;
+}
 
 /**
  * Returns the largest factor of the block's row count between 1 and 6.
@@ -120,16 +246,6 @@ function extractButtons(card) {
   const footer = document.createElement('footer');
   footer.append(last);
   card.append(footer);
-}
-
-/**
- * Marks a card as fully clickable when it contains exactly one link.
- * @param {HTMLElement} card - Card element to evaluate
- */
-function linkCard(card) {
-  const links = [...card.querySelectorAll('a[href]')];
-  if (links.length !== 1) return;
-  card.classList.add('linked');
 }
 
 export default function decorate(block) {
