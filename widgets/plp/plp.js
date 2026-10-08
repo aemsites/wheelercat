@@ -1,4 +1,8 @@
-import { toClassName, createOptimizedPicture, decorateIcons } from '../../scripts/aem.js';
+import { toClassName, loadCSS } from '../../scripts/aem.js';
+import { createEquipmentCard } from '../../blocks/cards/cards.js';
+import {
+  getEquipmentType, parsePrice, normalizeLocation, loadUsedEquipmentIndex, hydrateCopy,
+} from '../../scripts/scripts.js';
 
 /**
  * Load widget copy from the widget's local JSON (same name as the script).
@@ -18,57 +22,6 @@ async function loadWidgetCopy(lang) {
   } catch (_) {
     return {};
   }
-}
-
-/**
- * Hydrate all [data-copy] elements from widget copy.
- * @param {HTMLElement} container - Widget root element
- * @param {Object} copy - Widget copy for the current language
- */
-function hydrateCopy(container, copy) {
-  container.querySelectorAll('[data-copy]').forEach((el) => {
-    const value = copy[el.dataset.copy];
-    if (!value) return;
-    const target = el.dataset.copyTarget;
-    if (target) {
-      target.split(',').forEach((attr) => el.setAttribute(attr.trim(), value));
-    } else el.textContent = value;
-  });
-}
-
-/**
- * Fetch JSON from a URL, returning an empty data array on failure.
- * @param {string} url - Full URL to fetch
- * @returns {Promise<Object>}
- */
-async function fetchIndexJson(url) {
-  const resp = await fetch(url);
-  return resp.ok ? resp.json() : { data: [] };
-}
-
-/**
- * Derive a human-readable equipment type label from the second path segment.
- * @param {string} path - Content path (e.g. /used-equipment/compact-track-loaders/item-slug)
- * @returns {string} Title-cased type string, or empty string if not derivable
- */
-function getEquipmentType(path) {
-  if (!path) return '';
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length < 2) return '';
-  return segments[1].split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-/**
- * Parse a price string to a numeric value.
- * @param {string} str - Price string (e.g. "$409,000")
- * @returns {number|null} Numeric value, or null if not parseable
- */
-function parsePrice(str) {
-  if (!str) return null;
-  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-  return Number.isFinite(num) ? num : null;
 }
 
 /**
@@ -105,21 +58,6 @@ function populateModelFilter(select, rows, type = '') {
     option.textContent = model;
     select.appendChild(option);
   });
-}
-
-/**
- * Normalize a location string to "Title Case City, STATE" format.
- * @param {string} str - Raw location string (e.g. "salt lake city, ut")
- * @returns {string} Normalized location string
- */
-function normalizeLocation(str) {
-  if (!str) return str;
-  const [city, state] = str.split(',');
-  if (!state) return str;
-  const normalizedCity = city.trim().split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-  return `${normalizedCity}, ${state.trim().toUpperCase()}`;
 }
 
 /**
@@ -248,130 +186,6 @@ function bindRangeDesc(input, format = (v) => v) {
 const ITEMS_PER_PAGE = 12;
 
 /**
- * Format an hours value for display.
- * @param {string} value - Raw hours value from the index
- * @param {Object} copy - Widget copy for the current language
- * @returns {string}
- */
-function formatHours(value, copy) {
-  if (!value || value === 'N/A') return '';
-  const num = String(value).replace(/,/g, '');
-  if (/^\d+$/.test(num)) {
-    return `${Number(num).toLocaleString('en-US')} ${copy.hoursSuffix || 'hrs'}`;
-  }
-  return value;
-}
-
-/**
- * Create a result card element for a single index row.
- * @param {Object} row - Raw index row
- * @param {Object} [copy={}] - Widget copy for the current language
- * @returns {HTMLLIElement}
- */
-function createResultCard(row, copy = {}) {
-  const li = document.createElement('li');
-  li.className = 'result';
-
-  const mediaWrapper = document.createElement('div');
-  mediaWrapper.className = 'media-wrapper';
-  if (row.image) {
-    mediaWrapper.appendChild(createOptimizedPicture(row.image, row.title || '', false, [{ width: 750 }]));
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'placeholder';
-    mediaWrapper.appendChild(placeholder);
-  }
-  if (row.year) {
-    const yearBadge = document.createElement('span');
-    yearBadge.className = 'badge year';
-    yearBadge.textContent = row.year;
-    mediaWrapper.appendChild(yearBadge);
-  }
-  const usedBadge = document.createElement('span');
-  usedBadge.className = 'badge used';
-  const usedIcon = document.createElement('span');
-  usedIcon.className = 'icon icon-certified-used';
-  usedBadge.appendChild(usedIcon);
-  mediaWrapper.appendChild(usedBadge);
-  decorateIcons(mediaWrapper);
-  li.appendChild(mediaWrapper);
-
-  const body = document.createElement('div');
-  body.className = 'body-wrapper';
-
-  const typeLabel = getEquipmentType(row.path);
-  if (typeLabel) {
-    const eyebrow = document.createElement('p');
-    eyebrow.className = 'eyebrow type';
-    eyebrow.textContent = typeLabel;
-    body.appendChild(eyebrow);
-  }
-
-  if (row.title) {
-    const heading = document.createElement('h2');
-    if (typeLabel) heading.dataset.eyebrow = typeLabel;
-    heading.textContent = row.title;
-    body.appendChild(heading);
-  }
-
-  const formattedHours = formatHours(row.hours, copy);
-  if (row.serialNum || formattedHours) {
-    const metaList = document.createElement('ul');
-    metaList.className = 'meta';
-    if (row.serialNum) {
-      const snItem = document.createElement('li');
-      snItem.textContent = `${copy.serialNumber || 'S/N'}: ${row.serialNum}`;
-      metaList.appendChild(snItem);
-    }
-    if (formattedHours) {
-      const hoursItem = document.createElement('li');
-      hoursItem.textContent = formattedHours;
-      metaList.appendChild(hoursItem);
-    }
-    body.appendChild(metaList);
-  }
-
-  li.appendChild(body);
-
-  const footer = document.createElement('footer');
-
-  if (row.price) {
-    const priceMeta = document.createElement('p');
-    priceMeta.className = 'meta';
-    priceMeta.textContent = copy.price || 'Price';
-    footer.appendChild(priceMeta);
-
-    const priceEl = document.createElement('p');
-    priceEl.className = 'price';
-    priceEl.textContent = row.price;
-    footer.appendChild(priceEl);
-
-    footer.appendChild(document.createElement('hr'));
-  }
-
-  if (row.location) {
-    const locationEl = document.createElement('p');
-    locationEl.className = 'meta location';
-    locationEl.textContent = normalizeLocation(row.location);
-    footer.appendChild(locationEl);
-  }
-
-  const buttonLabel = copy.viewDetails || 'View Details';
-  const buttonWrapper = document.createElement('p');
-  buttonWrapper.className = 'button-wrapper';
-  const button = document.createElement('a');
-  button.href = row.path || '#';
-  button.className = 'button primary';
-  button.textContent = buttonLabel;
-  button.setAttribute('aria-label', `${buttonLabel} – ${row.title || ''}`);
-  buttonWrapper.appendChild(button);
-  footer.appendChild(buttonWrapper);
-
-  li.appendChild(footer);
-  return li;
-}
-
-/**
  * Render one page of results into the results list.
  * @param {HTMLElement} widget - Widget container element
  * @param {Array<Object>} results - Full result set
@@ -383,7 +197,7 @@ function displayResults(widget, results, page) {
   element.innerHTML = '';
   const start = (page - 1) * ITEMS_PER_PAGE;
   results.slice(start, start + ITEMS_PER_PAGE)
-    .forEach((row) => element.append(createResultCard(row, copy)));
+    .forEach((row) => element.append(createEquipmentCard(row, copy)));
 }
 
 /**
@@ -732,26 +546,6 @@ function buildFilters(widget, rows, copy) {
 }
 
 /**
- * Fetch and cache the used-equipment query index.
- * @returns {Promise<Array<Object>>} Raw index rows
- */
-async function loadIndex() {
-  if (window.plpIndex) return window.plpIndex;
-
-  if (!window.plpIndexPromise) {
-    window.plpIndexPromise = (async () => {
-      const base = window.hlx?.codeBasePath || '';
-      const json = await fetchIndexJson(`${base}/used-equipment/query-index.json`);
-      const rows = Array.isArray(json.data) ? json.data : [];
-      window.plpIndex = rows;
-      return rows;
-    })();
-  }
-
-  return window.plpIndexPromise;
-}
-
-/**
  * Derive inventory category (new/used/rental) from the page pathname.
  * @param {string} pathname - window.location.pathname
  * @returns {string|null}
@@ -769,12 +563,13 @@ function getCategoryFromPath(pathname) {
  * @param {HTMLElement} widget - Widget container element
  */
 export default async function decorate(widget) {
+  await loadCSS(`${window.hlx.codeBasePath}/blocks/cards/cards.css`);
   const lang = (document.documentElement.lang || 'en').split('-')[0];
   const copy = await loadWidgetCopy(lang);
   hydrateCopy(widget, copy);
   widget.plpCopy = copy;
 
-  const index = await loadIndex();
+  const index = await loadUsedEquipmentIndex();
   widget.plpResults = index;
   widget.plpInteraction = new Set();
   buildFilters(widget, index, copy);
