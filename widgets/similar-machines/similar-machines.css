@@ -1,0 +1,8 @@
+.similar-machines > h2 {
+  margin-bottom: var(--space-l);
+  text-align: center;
+}
+
+.similar-machines[hidden] {
+  display: none;
+}
