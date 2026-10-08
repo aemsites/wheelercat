@@ -1,4 +1,5 @@
 import { createOptimizedPicture, decorateIcons } from '../../scripts/aem.js';
+import { hydrateCopy } from '../../scripts/scripts.js';
 
 /**
  * Load widget copy from the widget's local JSON (same name as the script).
@@ -813,22 +814,6 @@ export async function attachSearchSuggestions(input, opts = {}) {
   };
 
   return { destroy };
-}
-
-/**
- * Hydrate all [data-copy] elements from widget copy.
- * @param {HTMLElement} container - .search root element
- * @param {Object} copy - Widget copy for the current language
- */
-function hydrateCopy(container, copy) {
-  container.querySelectorAll('[data-copy]').forEach((el) => {
-    const value = copy[el.dataset.copy];
-    if (!value) return;
-    const target = el.dataset.copyTarget;
-    if (target) {
-      target.split(',').forEach((attr) => el.setAttribute(attr.trim(), value));
-    } else el.textContent = value;
-  });
 }
 
 const ITEMS_PER_PAGE = 12;

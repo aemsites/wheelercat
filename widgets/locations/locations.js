@@ -1,3 +1,5 @@
+import { hydrateCopy } from '../../scripts/scripts.js';
+
 const DEALER_LOCATIONS_URL = '/dealer-locations.json';
 const ITEMS_PER_PAGE = 12;
 const SEARCH_DEBOUNCE_MS = 150;
@@ -65,22 +67,6 @@ async function loadWidgetCopy(lang) {
   } catch (_) {
     return {};
   }
-}
-
-/**
- * Hydrate all [data-copy] elements from widget copy.
- * @param {HTMLElement} container - .locations root element
- * @param {Object} copy - Widget copy for the current language
- */
-function hydrateCopy(container, copy) {
-  container.querySelectorAll('[data-copy]').forEach((el) => {
-    const value = copy[el.dataset.copy];
-    if (!value) return;
-    const target = el.dataset.copyTarget;
-    if (target) {
-      target.split(',').forEach((attr) => el.setAttribute(attr.trim(), value));
-    } else el.textContent = value;
-  });
 }
 
 /**
