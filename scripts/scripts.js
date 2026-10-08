@@ -10,7 +10,84 @@ import {
   loadSection,
   loadSections,
   loadCSS,
+  readBlockConfig,
+  toClassName,
 } from './aem.js';
+
+/**
+ * Hydrate all [data-copy] elements from widget copy.
+ * @param {HTMLElement} container - Widget root element
+ * @param {Object} copy - Widget copy for the current language
+ */
+export function hydrateCopy(container, copy) {
+  container.querySelectorAll('[data-copy]').forEach((el) => {
+    const value = copy[el.dataset.copy];
+    if (!value) return;
+    const target = el.dataset.copyTarget;
+    if (target) {
+      target.split(',').forEach((attr) => el.setAttribute(attr.trim(), value));
+    } else el.textContent = value;
+  });
+}
+
+/**
+ * Fetch and cache the used-equipment query index.
+ * @returns {Promise<Array<Object>>} Raw index rows
+ */
+export async function loadUsedEquipmentIndex() {
+  if (window.plpIndex) return window.plpIndex;
+  if (!window.plpIndexPromise) {
+    window.plpIndexPromise = (async () => {
+      const base = window.hlx && window.hlx.codeBasePath ? window.hlx.codeBasePath : '';
+      const response = await fetch(`${base}/used-equipment/query-index.json`);
+      const json = response.ok ? await response.json() : { data: [] };
+      const rows = Array.isArray(json.data) ? json.data : [];
+      window.plpIndex = rows;
+      return rows;
+    })();
+  }
+  return window.plpIndexPromise;
+}
+
+/**
+ * Derive a human-readable equipment type label from the second path segment.
+ * @param {string} path - Content path
+ * @returns {string} Title-cased type string, or empty string if not derivable
+ */
+export function getEquipmentType(path) {
+  if (!path) return '';
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length < 2) return '';
+  return segments[1].split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Parse a price string to a numeric value.
+ * @param {string} str - Price string
+ * @returns {number|null} Numeric value, or null if not parseable
+ */
+export function parsePrice(str) {
+  if (!str) return null;
+  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+  return Number.isFinite(num) ? num : null;
+}
+
+/**
+ * Normalize a location string to "Title Case City, STATE" format.
+ * @param {string} str - Raw location string
+ * @returns {string} Normalized location string
+ */
+export function normalizeLocation(str) {
+  if (!str) return str;
+  const [city, state] = str.split(',');
+  if (!state) return str;
+  const normalizedCity = city.trim().split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  return `${normalizedCity}, ${state.trim().toUpperCase()}`;
+}
 
 /**
  * Builds hero block and prepends to main in a new section.
@@ -43,6 +120,13 @@ async function loadFonts() {
   }
 }
 
+function isPDP(pathname = window.location.pathname) {
+  const s = pathname.split('/').filter(Boolean);
+  if (s[0] === 'used-equipment') return s.length === 3;
+  if (s[0] === 'new') return s.length === 4;
+  return false;
+}
+
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
@@ -67,7 +151,52 @@ function buildAutoBlocks(main) {
       });
     }
 
-    buildHeroBlock(main);
+    const productPDP = main === document.querySelector('main') && isPDP()
+      && (window.location.pathname.startsWith('/used-equipment/')
+        || window.location.pathname.startsWith('/new/'));
+    if (productPDP) {
+      const image = main.querySelector('picture img');
+      if (image) {
+        image.loading = 'eager';
+        image.setAttribute('fetchpriority', 'high');
+      }
+    } else {
+      buildHeroBlock(main);
+    }
+
+    if (productPDP
+      && !main.querySelector('.widget.pdp, .widget a[href*="/widgets/pdp/pdp.html"]')) {
+      const source = document.createElement('a');
+      source.href = '/widgets/pdp/pdp.html';
+      source.textContent = source.href;
+      const section = document.createElement('div');
+      section.append(buildBlock('widget', { elems: [source] }));
+      main.prepend(section);
+    }
+    if (productPDP && window.location.pathname.startsWith('/used-equipment/')
+      && !main.querySelector('.widget.similar-machines, .widget a[href*="/widgets/similar-machines/similar-machines.html"]')) {
+      const product = main.querySelector('.widget.pdp, .widget a[href*="/widgets/pdp/pdp.html"]');
+      const productSection = [...main.children].find((section) => section.contains(product));
+      if (productSection) {
+        const source = document.createElement('a');
+        source.href = '/widgets/similar-machines/similar-machines.html';
+        source.textContent = source.href;
+        const section = document.createElement('div');
+        section.append(buildBlock('widget', { elems: [source] }));
+        section.append(buildBlock('section-metadata', [['Style', 'light']]));
+        productSection.after(section);
+      }
+    }
+    if (productPDP && !main.querySelector('[data-dealership]')) {
+      const section = document.createElement('div');
+      section.dataset.dealership = '';
+      section.hidden = true;
+      const cards = buildBlock('cards', []);
+      cards.classList.add('cols-1');
+      section.append(cards);
+      section.append(buildBlock('section-metadata', [['Style', 'dark']]));
+      main.append(section);
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Auto Blocking failed', error);
@@ -158,13 +287,37 @@ export function decorateExternalLinks(container) {
  * Decorates the main element.
  * @param {Element} main The main element
  */
+function decorateSectionMetadata(main) {
+  main.querySelectorAll(':scope > .section').forEach((section) => {
+    section.querySelectorAll(':scope > div > .section-metadata').forEach((block) => {
+      const config = readBlockConfig(block);
+      const styles = String(config.style || '').split(',').map(toClassName).filter(Boolean);
+      section.classList.add(...styles);
+      const wrapper = block.parentElement;
+      block.remove();
+      if (!wrapper.children.length && !wrapper.textContent.trim()) wrapper.remove();
+    });
+  });
+}
+
+/**
+ * Decorates the main element.
+ * @param {Element} main The main element
+ */
 export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
+  decorateSectionMetadata(main);
   decorateBlocks(main);
   decorateButtons(main);
   decorateEyebrows(main);
+}
+
+function setPageType(doc) {
+  if (isPDP(doc.location.pathname)) {
+    document.body.dataset.pageType = 'product';
+  }
 }
 
 /**
@@ -174,6 +327,7 @@ export function decorateMain(main) {
 async function loadEager(doc) {
   document.documentElement.lang = 'en';
   decorateTemplateAndTheme();
+  setPageType(doc);
   const main = doc.querySelector('main');
   if (main) {
     decorateMain(main);
@@ -195,6 +349,25 @@ async function loadEager(doc) {
 }
 
 /**
+ * Repeat resolved PDP dealer contacts in the optional bottom card.
+ * @param {Element} main - Decorated page main element
+ */
+function populateDealershipSection(main) {
+  const cards = main.querySelector('[data-dealership] .cards');
+  const dealer = main.querySelector('.pdp .dealer:not([hidden])');
+  if (!cards || !dealer || cards.children.length) return;
+  const section = cards.closest('.section');
+  if (!section || !section.hidden || !dealer.firstElementChild) return;
+  const address = dealer.cloneNode(true);
+  const heading = document.createElement('h2');
+  heading.textContent = address.firstElementChild.textContent;
+  address.firstElementChild.remove();
+  const content = buildBlock('cards', [[{ elems: [heading, address] }]]);
+  cards.append(...content.children);
+  section.hidden = false;
+}
+
+/**
  * Loads everything that doesn't need to be delayed.
  * @param {Element} doc The container element
  */
@@ -202,6 +375,12 @@ async function loadLazy(doc) {
   loadHeader(doc.querySelector('body > header'));
 
   const main = doc.querySelector('main');
+  if (main.querySelector('[data-dealership] .cards')) {
+    const product = main.querySelector('.widget.pdp, .widget a[href*="/widgets/pdp/pdp.html"]');
+    const section = product && product.closest('.section');
+    if (section) await loadSection(section);
+  }
+  populateDealershipSection(main);
   await loadSections(main);
 
   const { hash } = window.location;
