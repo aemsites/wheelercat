@@ -1,0 +1,70 @@
+<nav class="back-link">
+  <a>
+    <span class="icon icon-arrow arrow-left" aria-hidden="true"></span>
+    <span data-copy="backToResults"></span>
+  </a>
+</nav>
+<header class="intro">
+  <p class="eyebrow"></p>
+</header>
+<article class="product">
+  <section class="media" data-copy="gallery" data-copy-target="aria-label">
+    <div class="viewer">
+      <button type="button" class="button outline zoom" data-copy="zoomImage" data-copy-target="aria-label,title">
+        <span class="icon icon-zoom" aria-hidden="true"></span>
+      </button>
+    </div>
+    <dialog class="image-zoom" data-copy="gallery" data-copy-target="aria-label">
+      <button type="button" class="button outline" data-copy="closeImage" data-copy-target="aria-label,title" autofocus>
+        <span class="icon icon-close" aria-hidden="true"></span>
+      </button>
+      <img alt="">
+    </dialog>
+    <ul class="thumbnails"></ul>
+    <nav class="gallery-controls button-wrapper" hidden data-copy="galleryNavigation" data-copy-target="aria-label">
+      <button type="button" class="button outline" data-direction="previous" data-copy="previousImage" data-copy-target="aria-label,title">
+        <span class="icon icon-arrow arrow-left" aria-hidden="true"></span>
+      </button>
+      <ol class="indicators button-wrapper" data-copy="imageIndicators" data-copy-target="aria-label"></ol>
+      <button type="button" class="button outline" data-direction="next" data-copy="nextImage" data-copy-target="aria-label,title">
+        <span class="icon icon-arrow" aria-hidden="true"></span>
+      </button>
+    </nav>
+  </section>
+  <section class="inventory" data-copy="inventory" data-copy-target="aria-label">
+    <div class="inventory-summary">
+      <p class="badge used" data-copy="used"></p>
+      <p class="price-label" data-copy="price"></p>
+      <p class="price"></p>
+      <p class="inventory-info" hidden></p>
+      <p class="serial-number" hidden></p>
+      <p class="location" hidden>
+        <span class="icon icon-pin" aria-hidden="true"></span>
+        <span class="location-text"></span>
+      </p>
+    </div>
+    <address class="dealer" hidden></address>
+    <ul class="resources" hidden></ul>
+    <div class="button-wrapper">
+      <a class="button primary" data-cta data-copy="reserveNow"></a>
+      <a class="button outline" data-cta data-copy="scheduleDemo"></a>
+    </div>
+  </section>
+</article>
+<dl class="key-specs" hidden></dl>
+<section class="equipment-details">
+  <h2 data-copy="equipmentDetails"></h2>
+  <details open>
+    <summary>
+      <span class="icon icon-chevron" aria-hidden="true"></span>
+      <span data-copy="basicInfo"></span>
+    </summary>
+    <dl class="basic-info"></dl>
+  </details>
+  <details class="configuration" hidden>
+    <summary>
+      <span class="icon icon-chevron" aria-hidden="true"></span>
+      <span data-copy="configurationDetails"></span>
+    </summary>
+  </details>
+</section>
